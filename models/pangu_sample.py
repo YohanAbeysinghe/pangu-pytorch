@@ -29,8 +29,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
     # scaler = torch.cuda.amp.GradScaler()
 
     # Load constants and teleconnection indices
-    aux_constants = utils_data.loadAllConstants(
-        device=device)  # 'weather_statistics','weather_statistics_last','constant_maps','tele_indices','variable_weights'
+    aux_constants = utils_data.loadAllConstants(device=device, cfg=cfg)  # 'weather_statistics','weather_statistics_last','constant_maps','tele_indices','variable_weights'
     upper_weights, surface_weights = aux_constants['variable_weights']
 
     # Train a single Pangu-Weather model
@@ -193,7 +192,7 @@ def test(test_loader, model, device, res_path):
     acc_surface = dict()
 
     # Load all statistics and constants
-    aux_constants = utils_data.loadAllConstants(device=device)
+    aux_constants = utils_data.loadAllConstants(device=device, cfg=cfg)
 
     batch_id = 0
     for id, data in enumerate(test_loader, 0):

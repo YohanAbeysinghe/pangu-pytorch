@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import sys
 sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
-from era5_data.config import cfg
 
 from typing import Tuple, List
 import torch
@@ -301,20 +300,20 @@ def loadConstMask_h(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", de
     return mask_h.to(device)
 
 
-def loadVariableWeights(device="cpu"):
+def loadVariableWeights(device="cpu", cfg=cfg):
     upper_weights = torch.FloatTensor(cfg.PG.TRAIN.UPPER_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3).unsqueeze(4)
     surface_weights = torch.FloatTensor(cfg.PG.TRAIN.SURFACE_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3)
     return upper_weights.to(device), surface_weights.to(device)
 
 
-def loadAllConstants(device):
+def loadAllConstants(device, cfg=None):
     constants = dict()
     constants['weather_statistics'] = weatherStatistics_input(
         device=device)  # height has inversed shape, order is reversed in model
     constants['weather_statistics_last'] = weatherStatistics_output(device=device)
     # constants['constant_maps'] = LoadConstantMask(device=device)
     constants['constant_maps'] = LoadConstantMask3(device=device) #not able to be equal
-    constants['variable_weights'] = loadVariableWeights(device=device)
+    constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)
     constants['const_h'] = loadConstMask_h(device=device)
 
     return constants
