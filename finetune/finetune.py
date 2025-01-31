@@ -20,11 +20,8 @@ import torch.nn as nn
 
 PATH = cfg.PG_INPUT_PATH
 
-# Set the target GPU (2 in this case)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
-
-
 
 output_path = os.path.join(cfg.PG_OUT_PATH, "test")
 utils.mkdirs(output_path)
@@ -95,17 +92,19 @@ test_dataloader = data.DataLoader(dataset=test_dataset,
                                   num_workers=0,
                                   pin_memory=False)
 
+
 model = PanguModel(device=device).to(device)
+
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
 model.load_state_dict(checkpoint['model'], strict=False)
+
 
 #Fully finetune
 for param in model.parameters():
     param.requires_grad = True
 
 optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr = cfg.PG.TRAIN.LR , weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY)
-
 
 
 msg = '\n'
@@ -118,10 +117,8 @@ print("weather statistics are loaded!")
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
 
 
-
 lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 50], gamma=0.5)
 start_epoch = 1
-
 
 
 model = train(model, train_loader=train_dataloader,
@@ -134,6 +131,7 @@ model = train(model, train_loader=train_dataloader,
               logger = logger,
               start_epoch=start_epoch,
               cfg = cfg)
+
 
 best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),map_location='cuda:0', weights_only=False)
 
