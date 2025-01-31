@@ -270,12 +270,10 @@ def LoadConstantMask(filepath='/l/users/yohan.abeysinghe/pangu_data/constant_mas
     return land_mask[None, None, ...].to(device), soil_type[None, None, ...].to(device), topography[None, None, ...].to(
         device)  # torch.Size([1, 1, 721, 1440])
 
-
 def LoadConstantMask3(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", device="cpu"):
     mask = np.load(os.path.join(filepath, "constantMaks3.npy")).astype(np.float32)
     mask = torch.from_numpy(mask)
     return mask.to(device)
-
 
 def computeStatistics(train_loader):
     # prepare for the statistics
@@ -288,9 +286,7 @@ def computeStatistics(train_loader):
         weather_mean += torch.mean(input, dim=(-1, -2), keepdim=True)
         weather_std += torch.std(input, dim=(-1, -2), keepdim=True)  # (1,5,13,)
     weather_surface_mean, weather_surface_std, weather_mean, weather_std = \
-        weather_surface_mean / len(train_loader), weather_surface_std / len(train_loader), weather_mean / len(
-            train_loader), weather_std / len(train_loader)
-
+        weather_surface_mean / len(train_loader), weather_surface_std / len(train_loader), weather_mean / len(train_loader), weather_std / len(train_loader)
     return weather_surface_mean, weather_surface_std, weather_mean, weather_std
 
 
@@ -299,12 +295,10 @@ def loadConstMask_h(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", de
     mask_h = torch.from_numpy(mask_h)
     return mask_h.to(device)
 
-
 def loadVariableWeights(device="cpu", cfg=None):
     upper_weights = torch.FloatTensor(cfg.PG.TRAIN.UPPER_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3).unsqueeze(4)
     surface_weights = torch.FloatTensor(cfg.PG.TRAIN.SURFACE_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3)
     return upper_weights.to(device), surface_weights.to(device)
-
 
 def loadAllConstants(device, cfg=None):
     constants = dict()
@@ -315,22 +309,7 @@ def loadAllConstants(device, cfg=None):
     constants['constant_maps'] = LoadConstantMask3(device=device) #not able to be equal
     constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)
     constants['const_h'] = loadConstMask_h(device=device)
-
     return constants
-
-# def normData(upper, surface, statistics):
-#     surface_mean, surface_std, upper_mean, upper_std = (
-#         statistics[0], statistics[1], statistics[2], statistics[3])
-
-#     upper = (upper - upper_mean) / upper_std
-
-#     # @Yohan. Normalize only the first four channels.
-#     # surface = (surface - surface_mean) / surface_std
-#     # Normalize the first 4 channels
-#     surface[:, :4, :, :] = (surface[:, :4, :, :] - surface_mean) / surface_std #@Yohan. NDVI is already normalized.
-
-#     return upper, surface
-
 
 def normData(upper, surface, statistics):
     surface_mean, surface_std, upper_mean, upper_std = (
@@ -340,29 +319,12 @@ def normData(upper, surface, statistics):
     surface = (surface - surface_mean) / surface_std
     return upper, surface
 
-
-
-# def normBackData(upper, surface, statistics):
-#     surface_mean, surface_std, upper_mean, upper_std = (
-#         statistics[0], statistics[1], statistics[2], statistics[3])
-#     upper = upper * upper_std + upper_mean
-
-#     #@Yohan
-#     surface[:, :4, :, :] = surface[:, :4, :, :] * surface_std + surface_mean #@Yohan. No need to back it for NDVI.
-#     # surface = surface * surface_std + surface_mean
-
-#     return upper, surface
-
 def normBackData(upper, surface, statistics):
     surface_mean, surface_std, upper_mean, upper_std = (
         statistics[0], statistics[1], statistics[2], statistics[3])
     upper = upper * upper_std + upper_mean
     surface = surface * surface_std + surface_mean
-
     return upper, surface
-
-
-
 
 if __name__ == "__main__":
     # dataset_path ='/home/code/data_storage_home/data/pangu'
