@@ -300,7 +300,7 @@ def loadConstMask_h(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", de
     return mask_h.to(device)
 
 
-def loadVariableWeights(device="cpu", cfg=cfg):
+def loadVariableWeights(device="cpu", cfg=None):
     upper_weights = torch.FloatTensor(cfg.PG.TRAIN.UPPER_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3).unsqueeze(4)
     surface_weights = torch.FloatTensor(cfg.PG.TRAIN.SURFACE_WEIGHTS).unsqueeze(0).unsqueeze(2).unsqueeze(3)
     return upper_weights.to(device), surface_weights.to(device)
