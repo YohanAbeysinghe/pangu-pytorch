@@ -56,8 +56,11 @@ train_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                             horizon=cfg.PG.HORIZON)
 
 train_dataloader = data.DataLoader(dataset=train_dataset,
-                                    batch_size=cfg.PG.TRAIN.BATCH_SIZE,
-                                    drop_last=True, shuffle=True, num_workers=0, pin_memory=False)
+                                   batch_size=cfg.PG.TRAIN.BATCH_SIZE,
+                                   drop_last=True,
+                                   shuffle=True,
+                                   num_workers=0,
+                                   pin_memory=False)
 
 
 val_dataset = utils_data.NetCDFDataset(nc_path=PATH,
@@ -69,8 +72,12 @@ val_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                             freq=cfg.PG.VAL.FREQUENCY,
                             horizon=cfg.PG.HORIZON)
 
-val_dataloader = data.DataLoader(dataset=val_dataset, batch_size=cfg.PG.VAL.BATCH_SIZE,
-                                        drop_last=True, shuffle=False, num_workers=0, pin_memory=False)
+val_dataloader = data.DataLoader(dataset=val_dataset,
+                                 batch_size=cfg.PG.VAL.BATCH_SIZE,
+                                 drop_last=True,
+                                 shuffle=False,
+                                 num_workers=0,
+                                 pin_memory=False)
 
 test_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                                     data_transform=None,
@@ -81,16 +88,14 @@ test_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                                     freq=cfg.PG.TEST.FREQUENCY,
                                     horizon=cfg.PG.HORIZON)
 
-test_dataloader = data.DataLoader(dataset=test_dataset, batch_size=cfg.PG.TEST.BATCH_SIZE,
-                                    drop_last=True, shuffle=False, num_workers=0, pin_memory=False)
-
-
-
-
+test_dataloader = data.DataLoader(dataset=test_dataset,
+                                  batch_size=cfg.PG.TEST.BATCH_SIZE,
+                                  drop_last=True,
+                                  shuffle=False,
+                                  num_workers=0,
+                                  pin_memory=False)
 
 model = PanguModel(device=device).to(device)
-
-
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
 model.load_state_dict(checkpoint['model'], strict=False)
@@ -125,7 +130,10 @@ model = train(model, train_loader=train_dataloader,
               lr_scheduler=lr_scheduler,
               res_path = output_path,
               device=device,
-              writer=writer, logger = logger, start_epoch=start_epoch)
+              writer=writer, 
+              logger = logger,
+              start_epoch=start_epoch,
+              cfg = cfg)
 
 best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),map_location='cuda:0', weights_only=False)
 

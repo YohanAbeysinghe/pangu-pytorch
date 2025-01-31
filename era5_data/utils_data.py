@@ -302,8 +302,7 @@ def loadVariableWeights(device="cpu", cfg=None):
 
 def loadAllConstants(device, cfg=None):
     constants = dict()
-    constants['weather_statistics'] = weatherStatistics_input(
-        device=device)  # height has inversed shape, order is reversed in model
+    constants['weather_statistics'] = weatherStatistics_input(filepath="", device=device)  # height has inversed shape, order is reversed in model
     constants['weather_statistics_last'] = weatherStatistics_output(device=device)
     # constants['constant_maps'] = LoadConstantMask(device=device)
     constants['constant_maps'] = LoadConstantMask3(device=device) #not able to be equal

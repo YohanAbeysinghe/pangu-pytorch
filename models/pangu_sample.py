@@ -1,7 +1,6 @@
 import sys
 sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
 from era5_data import utils, utils_data
-from era5_data.config import cfg
 from torch import nn
 import torch
 import copy
@@ -9,7 +8,7 @@ from era5_data import score
 import os
 
 def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, device, writer, logger, start_epoch,
-          rank=0):
+          rank=0, cfg=None):
     '''Training code'''
     # Prepare for the optimizer and scheduler
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 10, eta_min=0, last_epoch=- 1, verbose=False) #used in the paper
