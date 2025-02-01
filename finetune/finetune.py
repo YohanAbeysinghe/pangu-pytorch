@@ -44,13 +44,13 @@ logger = logging.getLogger(logger_name)
 
 
 train_dataset = utils_data.NetCDFDataset(nc_path=PATH,
-                            data_transform=None,
-                            training=True,
-                            validation = False,
-                            startDate = cfg.PG.TRAIN.START_TIME,
-                            endDate= cfg.PG.TRAIN.END_TIME,
-                            freq=cfg.PG.TRAIN.FREQUENCY,
-                            horizon=cfg.PG.HORIZON)
+                                         data_transform=None,
+                                         training=True,
+                                         validation = False,
+                                         startDate = cfg.PG.TRAIN.START_TIME,
+                                         endDate= cfg.PG.TRAIN.END_TIME,
+                                         freq=cfg.PG.TRAIN.FREQUENCY,
+                                         horizon=cfg.PG.HORIZON)
 
 train_dataloader = data.DataLoader(dataset=train_dataset,
                                    batch_size=cfg.PG.TRAIN.BATCH_SIZE,
@@ -61,13 +61,13 @@ train_dataloader = data.DataLoader(dataset=train_dataset,
 
 
 val_dataset = utils_data.NetCDFDataset(nc_path=PATH,
-                            data_transform=None,
-                            training=False,
-                            validation = True,
-                            startDate = cfg.PG.VAL.START_TIME,
-                            endDate= cfg.PG.VAL.END_TIME,
-                            freq=cfg.PG.VAL.FREQUENCY,
-                            horizon=cfg.PG.HORIZON)
+                                       data_transform=None,
+                                       training=False,
+                                       validation = True,
+                                       startDate = cfg.PG.VAL.START_TIME,
+                                       endDate= cfg.PG.VAL.END_TIME,
+                                       freq=cfg.PG.VAL.FREQUENCY,
+                                       horizon=cfg.PG.HORIZON)
 
 val_dataloader = data.DataLoader(dataset=val_dataset,
                                  batch_size=cfg.PG.VAL.BATCH_SIZE,
@@ -77,13 +77,13 @@ val_dataloader = data.DataLoader(dataset=val_dataset,
                                  pin_memory=False)
 
 test_dataset = utils_data.NetCDFDataset(nc_path=PATH,
-                                    data_transform=None,
-                                    training=False,
-                                    validation=False,
-                                    startDate=cfg.PG.TEST.START_TIME,
-                                    endDate=cfg.PG.TEST.END_TIME,
-                                    freq=cfg.PG.TEST.FREQUENCY,
-                                    horizon=cfg.PG.HORIZON)
+                                        data_transform=None,
+                                        training=False,
+                                        validation=False,
+                                        startDate=cfg.PG.TEST.START_TIME,
+                                        endDate=cfg.PG.TEST.END_TIME,
+                                        freq=cfg.PG.TEST.FREQUENCY,
+                                        horizon=cfg.PG.HORIZON)
 
 test_dataloader = data.DataLoader(dataset=test_dataset,
                                   batch_size=cfg.PG.TEST.BATCH_SIZE,
@@ -140,6 +140,7 @@ logger.info("Begin testing...")
 
 
 test(test_loader=test_dataloader,
-        model=best_model,
-        device=device,
-        res_path=output_path)
+     model=best_model,
+     device=device,
+     res_path=output_path,
+     cfg = cfg)

@@ -182,7 +182,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
     return best_model
 
 
-def test(test_loader, model, device, res_path):
+def test(test_loader, model, device, res_path, cfg):
     # set up empty dics for rmses and anormaly correlation coefficients
     rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v = dict(), dict(), dict(), dict(), dict()
     rmse_surface = dict()

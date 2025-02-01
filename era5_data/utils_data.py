@@ -217,7 +217,7 @@ class NetCDFDataset(data.Dataset):
         return self.__class__.__name__
 
 
-def weatherStatistics_output(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", device="cpu"):
+def weatherStatistics_output(filepath=None, device="cpu"):
     """
     :return:1, 5, 13, 1, 1
     """
@@ -242,7 +242,7 @@ def weatherStatistics_output(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_
         device)
 
 
-def weatherStatistics_input(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", device="cpu"):
+def weatherStatistics_input(filepath=None, device="cpu"):
     """
     :return:13, 1, 1, 5
     """
@@ -259,7 +259,7 @@ def weatherStatistics_input(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_d
     return surface_mean.to(device), surface_std.to(device), upper_mean.to(device), upper_std.to(device)
 
 
-def LoadConstantMask(filepath='/l/users/yohan.abeysinghe/pangu_data/constant_masks', device="cpu"):
+def LoadConstantMask(filepath=None, device="cpu"):
     land_mask = np.load(os.path.join(filepath, "land_mask.npy")).astype(np.float32)
     soil_type = np.load(os.path.join(filepath, "soil_type.npy")).astype(np.float32)
     topography = np.load(os.path.join(filepath, "topography.npy")).astype(np.float32)
@@ -270,7 +270,7 @@ def LoadConstantMask(filepath='/l/users/yohan.abeysinghe/pangu_data/constant_mas
     return land_mask[None, None, ...].to(device), soil_type[None, None, ...].to(device), topography[None, None, ...].to(
         device)  # torch.Size([1, 1, 721, 1440])
 
-def LoadConstantMask3(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", device="cpu"):
+def LoadConstantMask3(filepath=None, device="cpu"):
     mask = np.load(os.path.join(filepath, "constantMaks3.npy")).astype(np.float32)
     mask = torch.from_numpy(mask)
     return mask.to(device)
@@ -289,8 +289,7 @@ def computeStatistics(train_loader):
         weather_surface_mean / len(train_loader), weather_surface_std / len(train_loader), weather_mean / len(train_loader), weather_std / len(train_loader)
     return weather_surface_mean, weather_surface_std, weather_mean, weather_std
 
-
-def loadConstMask_h(filepath="/l/users/yohan.abeysinghe/pangu_data/aux_data", device="cpu"):
+def loadConstMask_h(filepath=None, device="cpu"):
     mask_h = np.load(os.path.join(filepath, "Constant_17_output_0.npy")).astype(np.float32)
     mask_h = torch.from_numpy(mask_h)
     return mask_h.to(device)
@@ -302,25 +301,22 @@ def loadVariableWeights(device="cpu", cfg=None):
 
 def loadAllConstants(device, cfg=None):
     constants = dict()
-    constants['weather_statistics'] = weatherStatistics_input(filepath="", device=device)  # height has inversed shape, order is reversed in model
-    constants['weather_statistics_last'] = weatherStatistics_output(device=device)
+    constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)  # height has inversed shape, order is reversed in model
+    constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
     # constants['constant_maps'] = LoadConstantMask(device=device)
-    constants['constant_maps'] = LoadConstantMask3(device=device) #not able to be equal
+    constants['constant_maps'] = LoadConstantMask3(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device) #not able to be equal
     constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)
-    constants['const_h'] = loadConstMask_h(device=device)
+    constants['const_h'] = loadConstMask_h(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
     return constants
 
 def normData(upper, surface, statistics):
-    surface_mean, surface_std, upper_mean, upper_std = (
-        statistics[0], statistics[1], statistics[2], statistics[3])
-
+    surface_mean, surface_std, upper_mean, upper_std = (statistics[0], statistics[1], statistics[2], statistics[3])
     upper = (upper - upper_mean) / upper_std
     surface = (surface - surface_mean) / surface_std
     return upper, surface
 
 def normBackData(upper, surface, statistics):
-    surface_mean, surface_std, upper_mean, upper_std = (
-        statistics[0], statistics[1], statistics[2], statistics[3])
+    surface_mean, surface_std, upper_mean, upper_std = (statistics[0], statistics[1], statistics[2], statistics[3])
     upper = upper * upper_std + upper_mean
     surface = surface * surface_std + surface_mean
     return upper, surface
