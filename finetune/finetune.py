@@ -7,18 +7,29 @@ from torch.utils import data
 from torch.cuda.amp import autocast
 from torch.utils.data.distributed import DistributedSampler
 
-from era5_data.config import cfg
+# from era5_data.config import cfg
 from era5_data import utils_data, utils
 from models.pangu_model import PanguModel
 from models.pangu_sample import test, train
 
 import os
 import logging
+import argparse
+import importlib
 from tensorboardX import SummaryWriter
 
+
+###########################################################################################
+############################# Argument Parsing ############################################
+###########################################################################################
+parser = argparse.ArgumentParser(description="Pangu Model Training")
+parser.add_argument('--config', type=str, default='config', help='Option to load different configs')
+args = parser.parse_args()
+config_module = importlib.import_module(f"era5_data.{args.config}")
+cfg = config_module.cfg
+#
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
-
-
+#
 ###########################################################################################
 ############################## Distributed Training #######################################
 ###########################################################################################
