@@ -22,10 +22,13 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 ############################# Argument Parsing ############################################
 ###########################################################################################
+#
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
+parser.add_argument('--output_name', type=str, default='test', help='Name of the output directory')
 args = parser.parse_args()
-config_module = importlib.import_module(f"era5_data.{args.config}")
+
+config_module = importlib.import_module(f"configs.{args.config}")
 cfg = config_module.cfg
 #
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
@@ -41,7 +44,7 @@ print(f"Using device: {device}")
 ############################## Logging Info ###############################################
 ###########################################################################################
 #
-output_path = os.path.join(cfg.PG_OUT_PATH, "test")
+output_path = os.path.join(cfg.PG_OUT_PATH, args.output_name)
 utils.mkdirs(output_path)
 
 writer_path = os.path.join(output_path, "writer")
