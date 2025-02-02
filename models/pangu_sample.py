@@ -155,13 +155,15 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                                 var='u',
                                 z=12,
                                 step=i,
-                                path=png_path)
+                                path=png_path,
+                                cfg=cfg)
                 utils.visuailze_surface(output_surface_val.detach().cpu().squeeze(),
                                         target_surface_val.detach().cpu().squeeze(),
                                         input_surface_val_raw.squeeze(),
                                         var='msl',
                                         step=i,
-                                        path=png_path)
+                                        path=png_path,
+                                        cfg=cfg)
                 # Early stopping
                 if val_loss < best_loss:
                     best_loss = val_loss
@@ -222,14 +224,16 @@ def test(test_loader, model, device, res_path, cfg):
                                 var='t',
                                 z = 2,
                                 step=target_time, 
-                                path=png_path)
+                                path=png_path,
+                                cfg=cfg)
         #['msl', 'u','v','t2m']
         utils.visuailze_surface(output_surface_test.detach().cpu().squeeze(),
                             target_surface_test.detach().cpu().squeeze(),
                             input_surface_test.detach().cpu().squeeze(),
                             var='u10',
                             step=target_time,
-                            path=png_path)
+                            path=png_path,
+                            cfg=cfg)
   
 
         # Compute test scores
@@ -277,9 +281,8 @@ def test(test_loader, model, device, res_path, cfg):
     # Save rmses to csv
     csv_path = os.path.join(res_path, "csv")
     utils.mkdirs(csv_path)
-    utils.save_errorScores(csv_path, rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v, rmse_surface,
-                     "rmse")
-    utils.save_errorScores(csv_path, acc_upper_z, acc_upper_q, acc_upper_t, acc_upper_u, acc_upper_v, acc_surface, "acc")
+    utils.save_errorScores(csv_path, rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v, rmse_surface, "rmse", cfg=cfg)
+    utils.save_errorScores(csv_path, acc_upper_z, acc_upper_q, acc_upper_t, acc_upper_u, acc_upper_v, acc_surface, "acc", cfg=cfg)
 
 
 if __name__ == "__main__":

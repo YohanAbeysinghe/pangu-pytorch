@@ -5,7 +5,6 @@ import numpy as np
 import sys
 
 sys.path.append("/home/yohan.abeysinghe/pangu-pytorch")
-from era5_data.config import cfg
 from typing import Tuple, List
 import torch
 import random
@@ -60,7 +59,7 @@ class logger_print(object):
         pass
 
 
-def visuailze(output, target, input, var, z, step, path):
+def visuailze(output, target, input, var, z, step, path, cfg):
     # levels = np.linspace(-30, 90, 9)
     variables = cfg.ERA5_UPPER_VARIABLES
     var = variables.index(var)
@@ -91,7 +90,7 @@ def visuailze(output, target, input, var, z, step, path):
     plt.close(fig)
 
 
-def visuailze_surface(output, target, input, var, step, path):
+def visuailze_surface(output, target, input, var, step, path, cfg):
     variables = cfg.ERA5_SURFACE_VARIABLES
     var = variables.index(var)
     fig = plt.figure(figsize=(16, 2))
@@ -168,7 +167,7 @@ def torch_summarize(model, show_weights=False, show_parameters=False, show_gradi
     return tmpstr
 
 
-def save_errorScores(csv_path, z, q, t, u, v, surface, error):
+def save_errorScores(csv_path, z, q, t, u, v, surface, error, cfg):
     score_upper_z = pd.DataFrame.from_dict(z,
                                 orient='index',
                                 columns=cfg.ERA5_UPPER_LEVELS)
