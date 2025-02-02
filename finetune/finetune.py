@@ -25,7 +25,7 @@ from tensorboardX import SummaryWriter
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
-parser.add_argument('--output_name', type=str, default='test', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -44,7 +44,7 @@ print(f"Using device: {device}")
 ############################## Logging Info ###############################################
 ###########################################################################################
 #
-output_path = os.path.join(cfg.PG_OUT_PATH, args.output_name)
+output_path = os.path.join(cfg.PG_OUT_PATH, args.output)
 utils.mkdirs(output_path)
 
 writer_path = os.path.join(output_path, "writer")
