@@ -48,12 +48,12 @@ class PanguModel(nn.Module):
         nn.init.constant_(m.bias, 0)
         nn.init.constant_(m.weight, 1.0)  
 
-  def forward(self, input, input_surface, statistics, maps, const_h):
+  def forward(self, input, input_surface, statistics, maps, const_h, cfg):
     '''Backbone architecture'''
     # Embed the input fields into patches
     # input:(B, N, Z, H, W) ([1, 5, 13, 721, 1440])input_surface(B,N,H,W)([1, 4, 721, 1440])
     # x = checkpoint.checkpoint(self._input_layer, input, input_surface)
-    x = self._input_layer(input, input_surface, statistics, maps, const_h) #([1, 521280, 192]) [B, spatial, C]
+    x = self._input_layer(input, input_surface, statistics, maps, const_h, cfg) #([1, 521280, 192]) [B, spatial, C]
 
     # Encoder, composed of two layers
     # Layer 1, shape (8, 360, 181, C), C = 192 as in the original paper

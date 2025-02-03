@@ -51,7 +51,8 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             # Call the model and get the output
             output, output_surface = model(input, input_surface, aux_constants['weather_statistics'],
                                            aux_constants['constant_maps'],
-                                           aux_constants['const_h'])  # (1,5,13,721,1440)
+                                           aux_constants['const_h'],
+                                           cfg = cfg)  # (1,5,13,721,1440)
 
             # Normalize gt to make loss compariable
             target, target_surface = utils_data.normData(target, target_surface, aux_constants['weather_statistics_last'])

@@ -37,7 +37,7 @@ class PatchEmbedding_pretrain(nn.Module):
     # x = self.Pad3D(x)
     return x
 
-  def forward(self, input, input_surface, statistics, maps, const_h):
+  def forward(self, input, input_surface, statistics, maps, const_h, cfg):
     # input:(B, N, Z, H, W) input_surface(B,N,H,W)
     # Zero-pad the input
     self.surface_mean, self.surface_std, self.upper_mean, self.upper_std = statistics[0], statistics[1], statistics[
