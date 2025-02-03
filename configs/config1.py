@@ -12,6 +12,7 @@ __C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
+__C.GLOBAL.MODEL = 'original'
 
 for dirs in ['/home/yohan.abeysinghe/Pangu/pangu-pytorch']:
     if os.path.exists(dirs):
