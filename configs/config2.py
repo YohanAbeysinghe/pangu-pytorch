@@ -18,10 +18,10 @@ for dirs in ['/home/yohan.abeysinghe/Pangu/pangu-pytorch']:
         __C.GLOBAL.PATH = dirs
 assert __C.GLOBAL.PATH is not None
 
-__C.PG_INPUT_PATH = '/l/users/yohan.abeysinghe/pangu-cropped'
+__C.PG_INPUT_PATH = '/l/users/yohan.abeysinghe/pangu_cropped'
 assert __C.PG_INPUT_PATH is not None
 
-__C.PG_OUT_PATH = os.path.join('/l/users/yohan.abeysinghe/pangu-cropped/results')
+__C.PG_OUT_PATH = os.path.join('/l/users/yohan.abeysinghe/pangu_cropped/results')
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
