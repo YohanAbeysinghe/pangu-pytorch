@@ -281,8 +281,10 @@ def LoadConstantMask(filepath=None, device="cpu"):
     return land_mask[None, None, ...].to(device), soil_type[None, None, ...].to(device), topography[None, None, ...].to(
         device)  # torch.Size([1, 1, 721, 1440])
 
-def LoadConstantMask3(filepath=None, device="cpu"):
+def LoadConstantMask3(filepath=None, device="cpu", cfg=None):
     mask = np.load(os.path.join(filepath, "constantMaks3.npy")).astype(np.float32)
+    if cfg.GLOBAL.MODEL == "cropped":
+        mask = mask[:, :, 179:391, 0:305] # # @Yohan [1,3,724,1440] ---> [1,3,212,305]
     mask = torch.from_numpy(mask)
     return mask.to(device)
 
@@ -300,9 +302,11 @@ def computeStatistics(train_loader):
         weather_surface_mean / len(train_loader), weather_surface_std / len(train_loader), weather_mean / len(train_loader), weather_std / len(train_loader)
     return weather_surface_mean, weather_surface_std, weather_mean, weather_std
 
-def loadConstMask_h(filepath=None, device="cpu"):
+def loadConstMask_h(filepath=None, device="cpu", cfg=None):
     mask_h = np.load(os.path.join(filepath, "Constant_17_output_0.npy")).astype(np.float32)
     mask_h = torch.from_numpy(mask_h)
+    if cfg.GLOBAL.MODEL == "cropped":
+        mask_h = mask_h[:, :, :, :, 180:389, 0:305] #@Yohan. cropped. [1,1,1,13,209,305]
     return mask_h.to(device)
 
 def loadVariableWeights(device="cpu", cfg=None):
@@ -315,9 +319,9 @@ def loadAllConstants(device, cfg=None):
     constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)  # height has inversed shape, order is reversed in model
     constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
     # constants['constant_maps'] = LoadConstantMask(device=device)
-    constants['constant_maps'] = LoadConstantMask3(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device) #not able to be equal
+    constants['constant_maps'] = LoadConstantMask3(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg) #not able to be equal
     constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)
-    constants['const_h'] = loadConstMask_h(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
+    constants['const_h'] = loadConstMask_h(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg)
     return constants
 
 def normData(upper, surface, statistics):

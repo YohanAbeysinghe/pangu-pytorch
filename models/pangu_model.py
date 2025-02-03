@@ -48,7 +48,7 @@ class PanguModel(nn.Module):
         nn.init.constant_(m.bias, 0)
         nn.init.constant_(m.weight, 1.0)  
 
-  def forward(self, input, input_surface, statistics, maps,const_h):
+  def forward(self, input, input_surface, statistics, maps, const_h):
     '''Backbone architecture'''
     # Embed the input fields into patches
     # input:(B, N, Z, H, W) ([1, 5, 13, 721, 1440])input_surface(B,N,H,W)([1, 4, 721, 1440])
