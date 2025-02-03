@@ -62,7 +62,8 @@ class NetCDFDataset(data.Dataset):
                  startDate='20150101',
                  endDate='20150102',
                  freq='H',
-                 horizon=5):
+                 horizon=5,
+                 cfg=None):
         """Initialize."""
         self.horizon = horizon
         self.nc_path = nc_path
@@ -75,6 +76,7 @@ class NetCDFDataset(data.Dataset):
         self.training = training
         self.validation = validation
         self.data_transform = data_transform
+        self.model_type = cfg.GLOBAL.MODEL
 
         if training:
             self.keys = list(pd.date_range(start=startDate, end=endDate, freq=freq))
@@ -114,7 +116,12 @@ class NetCDFDataset(data.Dataset):
         upper_v = dataset_upper['v'].values.astype(np.float32)
         upper = np.concatenate((upper_z[np.newaxis, ...], upper_q[np.newaxis, ...], upper_t[np.newaxis, ...],
                                 upper_u[np.newaxis, ...], upper_v[np.newaxis, ...]), axis=0)
-        assert upper.shape == (5, 13, 721, 1440)
+        
+        if self.model_type == "original":
+            assert upper.shape == (5, 13, 721, 1440)
+        if self.model_type == "cropped":
+            assert upper.shape == (5,13,209,305) #@Yohan (5, 13, 721, 1440) ---> (5,13,209,305)
+
         # levels in descending order, require new memery space
         upper = upper[:, ::-1, :, :].copy()
 
@@ -124,7 +131,11 @@ class NetCDFDataset(data.Dataset):
         surface_t2m = dataset_surface['t2m'].values.astype(np.float32)
         surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
                                   surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...]), axis=0)
-        assert surface.shape == (4, 721, 1440)
+        
+        if self.model_type == "original":
+            assert surface.shape == (4, 721, 1440)
+        if self.model_type == "cropped":
+            assert surface.shape == (4, 209,305) #@Yohan (4, 721, 1440) ---> (4,209,305)
 
         return upper, surface
 

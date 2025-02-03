@@ -69,7 +69,8 @@ train_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                                          startDate = cfg.PG.TRAIN.START_TIME,
                                          endDate= cfg.PG.TRAIN.END_TIME,
                                          freq=cfg.PG.TRAIN.FREQUENCY,
-                                         horizon=cfg.PG.HORIZON)
+                                         horizon=cfg.PG.HORIZON,
+                                         cfg=cfg)
 
 train_dataloader = data.DataLoader(dataset=train_dataset,
                                    batch_size=cfg.PG.TRAIN.BATCH_SIZE,
@@ -86,7 +87,8 @@ val_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                                        startDate = cfg.PG.VAL.START_TIME,
                                        endDate= cfg.PG.VAL.END_TIME,
                                        freq=cfg.PG.VAL.FREQUENCY,
-                                       horizon=cfg.PG.HORIZON)
+                                       horizon=cfg.PG.HORIZON,
+                                       cfg=cfg)
 
 val_dataloader = data.DataLoader(dataset=val_dataset,
                                  batch_size=cfg.PG.VAL.BATCH_SIZE,
@@ -102,7 +104,8 @@ test_dataset = utils_data.NetCDFDataset(nc_path=PATH,
                                         startDate=cfg.PG.TEST.START_TIME,
                                         endDate=cfg.PG.TEST.END_TIME,
                                         freq=cfg.PG.TEST.FREQUENCY,
-                                        horizon=cfg.PG.HORIZON)
+                                        horizon=cfg.PG.HORIZON,
+                                        cfg=cfg)
 
 test_dataloader = data.DataLoader(dataset=test_dataset,
                                   batch_size=cfg.PG.TEST.BATCH_SIZE,
@@ -148,7 +151,8 @@ print("weather statistics are loaded!")
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-model = train(model, train_loader=train_dataloader,
+model = train(model,
+              train_loader=train_dataloader,
               val_loader=val_dataloader,
               optimizer=optimizer,
               lr_scheduler=lr_scheduler,
