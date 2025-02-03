@@ -20,20 +20,30 @@ class PatchEmbedding_pretrain(nn.Module):
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
 
-  def check_image_size_2d(self, x):
+  def check_image_size_2d(self, x, cfg):
     _, _, h, w = x.size()
-    mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]  # 6
-    mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]
-    x = F.pad(x, (0, mod_pad_w, 0, 3), 'constant')
+    # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]  # 6
+    # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]  # 0
+    if cfg.GLOBAL.MODEL == "original":
+      x = F.pad(x, (0, 0, 0, 3), 'constant')
+    if cfg.GLOBAL.MODEL == "cropped":
+      x = F.pad(x, (4, 3, 4, 3), 'constant') # @Yohan. Think about the padding.
     # x = self.Pad2D(x)
     return x
 
-  def check_image_size_3d(self, x):
+  def check_image_size_3d(self, x, cfg):
     _, _, d, h, w = x.size()
-    mod_pad_d = (self.window_size[0] - h % self.window_size[0]) % self.window_size[0]
-    mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]
-    mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]
-    x = F.pad(x, (0, 0, 0, 3, 0, 1), 'constant')
+    # mod_pad_d = (self.window_size[0] - h % self.window_size[0]) % self.window_size[0]
+    # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]
+    # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]
+    if cfg.GLOBAL.MODEL == "original":
+      # @yohan x is changed from [1, 6, 13, 721, 1440]
+      x = F.pad(x, (0, 0, 0, 3, 0, 1), 'constant')
+      #@Yohan [1, 6, 14, 724,1440]
+    if cfg.GLOBAL.MODEL == "cropped":
+      # @yohan x is changed from [1, 6, 13, 209,305]
+      x = F.pad(x, (4, 3, 4, 3, 0, 1), 'constant') # @Yohan. Think about the padding. 
+      #@Yohan [1, 6, 14, 216,312] 
     # x = self.Pad3D(x)
     return x
 
@@ -54,7 +64,12 @@ class PatchEmbedding_pretrain(nn.Module):
     input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], input_surface.shape[-2],
                                        input_surface.shape[-1])  # [1,4,721,1440]
 
-    input_surface = self.check_image_size_2d(input_surface)
+    input_surface = self.check_image_size_2d(input_surface, cfg=cfg)
+
+    if cfg.GLOBAL.MODEL == "cropped":
+      # @Yohan Padding constant mask (1,3,212,305) --> (1,3,216,312)
+      self.constant_masks = F.pad(self.constant_masks, (4, 3, 2, 2), 'constant', 0)
+
     input_surface = torch.cat(
       (input_surface, self.constant_masks), dim=1,
       out=None)
@@ -66,7 +81,13 @@ class PatchEmbedding_pretrain(nn.Module):
                                           input_surface.shape[1] * input_surface.shape[2] * input_surface.shape[3],
                                           -1)
     input_surface = self.conv_surface(input_surface)  # (1,192,65160)
-    input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
+
+
+    if cfg.GLOBAL.MODEL == "original":
+        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
+    if cfg.GLOBAL.MODEL == "cropped":
+        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 54, 78)
+
 
     input = input.reshape(input.shape[0], input.shape[1], 1, input.shape[2], input.shape[-2], input.shape[-1])
     input = torch.permute(input, (0, 2, 3, 4, 5, 1))  # [1,1,13,721,1440,5]
@@ -77,16 +98,23 @@ class PatchEmbedding_pretrain(nn.Module):
     input = torch.cat((input, const_h), dim=1)  # [1,6,1,13,721,1440]
     input = input.reshape(input.shape[0], input.shape[1], input.shape[3], input.shape[-2],
                           input.shape[-1])  # [1,6,13,721,1440]
-    input = self.check_image_size_3d(input)
+    input = self.check_image_size_3d(input, cfg)
     # related to patch size
     input = input.reshape(input.shape[0], input.shape[1], input.shape[2] // 2, 2, input.shape[-2] // 4, 4,
                           input.shape[-1] // 4, 4)
     input = input.permute(0, 1, 3, 5, 7, 2, 4, 6)  # (1,6,2,4,4, 7, 181,360)
     input = input.reshape(input.shape[0], input.shape[1] * input.shape[2] * input.shape[3] * input.shape[4], -1)
     input = self.conv(input)  # (1,192,456120)
-    input = input.view(input.shape[0], input.shape[1], 7, 181, 360)
+
+
+    if cfg.GLOBAL.MODEL == "original":
+      input = input.view(input.shape[0], input.shape[1], 7, 181, 360)
+    if cfg.GLOBAL.MODEL == "cropped":
+      input = input.view(input.shape[0], input.shape[1], 7, 54, 78)
+    
 
     x = torch.cat((input_surface, input), dim=2)
+
     x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
 
     x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
