@@ -89,7 +89,7 @@ class PatchEmbedding_pretrain(nn.Module):
     if cfg.GLOBAL.MODEL == "original":
         input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
     if cfg.GLOBAL.MODEL == "cropped":
-        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 54, 78)
+        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 54, 78) #@Yohan
 
 
     input = input.reshape(input.shape[0], input.shape[1], 1, input.shape[2], input.shape[-2], input.shape[-1])
@@ -130,7 +130,7 @@ class PatchEmbedding_pretrain(nn.Module):
     #   x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
     
 
-    input = input.view(input.shape[0], input.shape[1], 7, 54, 78) # (1,192,8,181,360)
+    input = input.view(input.shape[0], input.shape[1], 7, 54, 78) # (1,192,7,181,360)
     x = torch.cat((input_surface, input), dim=2)
     x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192, 521280)
     x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
