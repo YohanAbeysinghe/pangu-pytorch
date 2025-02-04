@@ -7,14 +7,15 @@ from collections import OrderedDict
 import torch.utils.checkpoint as checkpoint
 
 class PanguModel(nn.Module):
-  def __init__(self, depths = [2,6,6,2], num_heads = [6, 12, 12, 6], dims = [192, 384, 384, 192], patch_size = (2, 4, 4), device=None):
+  def __init__(self, depths = [2,6,6,2], num_heads = [6, 12, 12, 6], dims = [192, 384, 384, 192], patch_size = (2, 4, 4), device=None, cfg=None):
     super(PanguModel, self).__init__()
   
     # Patch embedding
     self.device = device
+    self.cfg = cfg
 
     # self._input_layer = PatchEmbedding(patch_size, dims[0], device=self.device)
-    self._input_layer = PatchEmbedding_pretrain(patch_size, dims[0])
+    self._input_layer = PatchEmbedding_pretrain(patch_size, dims[0], cfg=self.cfg)
     self.downsample = DownSample(dims[0])
 
     dpr = [x.item() for x in torch.linspace(0, 0.2, sum(depths))]
@@ -29,7 +30,8 @@ class PanguModel(nn.Module):
           drop_path_ratio_list = dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
           heads = num_heads[i_layer],
           use_checkpoint = self.training,
-          device = self.device)
+          device = self.device,
+          cfg = self.cfg)
     self.layers = nn.Sequential(layer_list)
 
     self.upsample = UpSample(dims[-2], dims[-1])
@@ -48,12 +50,12 @@ class PanguModel(nn.Module):
         nn.init.constant_(m.bias, 0)
         nn.init.constant_(m.weight, 1.0)  
 
-  def forward(self, input, input_surface, statistics, maps, const_h, cfg):
+  def forward(self, input, input_surface, statistics, maps, const_h):
     '''Backbone architecture'''
     # Embed the input fields into patches
     # input:(B, N, Z, H, W) ([1, 5, 13, 721, 1440])input_surface(B,N,H,W)([1, 4, 721, 1440])
     # x = checkpoint.checkpoint(self._input_layer, input, input_surface)
-    x = self._input_layer(input, input_surface, statistics, maps, const_h, cfg) #([1, 521280, 192]) [B, spatial, C]
+    x = self._input_layer(input, input_surface, statistics, maps, const_h) #([1, 521280, 192]) [B, spatial, C]
 
     # Encoder, composed of two layers
     # Layer 1, shape (8, 360, 181, C), C = 192 as in the original paper

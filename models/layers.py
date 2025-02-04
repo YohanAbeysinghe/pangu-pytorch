@@ -10,10 +10,11 @@ from timm.layers import DropPath, trunc_normal_
 from collections import OrderedDict
 
 class PatchEmbedding_pretrain(nn.Module):
-  def __init__(self, patch_size, dim):
+  def __init__(self, patch_size, dim, cfg):
     super(PatchEmbedding_pretrain, self).__init__()
     '''Patch embedding operation'''
     # Here we use convolution to partition data into cubes
+    self.cfg = cfg # @Yohan
     self.conv = nn.Conv1d(in_channels=192, out_channels=dim, kernel_size=1, stride=1)
     self.conv_surface = nn.Conv1d(in_channels=112, out_channels=dim, kernel_size=1, stride=1)
     self.window_size = (2, 6, 12)  # Z,H,W
@@ -50,9 +51,10 @@ class PatchEmbedding_pretrain(nn.Module):
     # x = self.Pad3D(x)
     return x
 
-  def forward(self, input, input_surface, statistics, maps, const_h, cfg):
+  def forward(self, input, input_surface, statistics, maps, const_h):
     # input:(B, N, Z, H, W) input_surface(B,N,H,W)
     # Zero-pad the input
+    cfg = self.cfg # @yohan
     self.surface_mean, self.surface_std, self.upper_mean, self.upper_std = statistics[0], statistics[1], statistics[
       2], \
       statistics[3]
@@ -141,7 +143,7 @@ class PatchEmbedding_pretrain(nn.Module):
 
 
 class EarthSpecificLayer(nn.Module):
-  def __init__(self, depth, dim, drop_path_ratio_list, heads, use_checkpoint, device):
+  def __init__(self, depth, dim, drop_path_ratio_list, heads, use_checkpoint, device, cfg):
     super(EarthSpecificLayer, self).__init__()
     self.device = device
     '''Basic layer of our network, contains 2 or 6 blocks'''
@@ -149,7 +151,7 @@ class EarthSpecificLayer(nn.Module):
 
     block_list = OrderedDict()
     for i_layer in range(depth):
-        block_list['EarthSpecificBlock{}'.format(i_layer)] = EarthSpecificBlock(dim, drop_path_ratio_list[i_layer], heads, device=self.device)
+        block_list['EarthSpecificBlock{}'.format(i_layer)] = EarthSpecificBlock(dim, drop_path_ratio_list[i_layer], heads, device=self.device, cfg=cfg)
     self.blocks = nn.Sequential(block_list)
     self.use_checkpoint = use_checkpoint
     self.device = device
@@ -172,7 +174,7 @@ class EarthSpecificLayer(nn.Module):
     return x
   
 class EarthSpecificBlock(nn.Module):
-  def __init__(self, dim, drop_path_ratio, heads, device):
+  def __init__(self, dim, drop_path_ratio, heads, device, cfg):
     super(EarthSpecificBlock, self).__init__()
     '''
     3D transformer block with Earth-Specific bias and window attention, 
@@ -180,6 +182,7 @@ class EarthSpecificBlock(nn.Module):
     The major difference is that we expand the dimensions to 3 and replace the relative position bias with Earth-Specific bias.
     '''
     self.device = device
+    self.cfg = cfg
     # Define the window size of the neural network 
     self.window_size = (2, 6, 12)
 
@@ -228,6 +231,7 @@ class EarthSpecificBlock(nn.Module):
     return attn_mask
 
   def forward(self, x, Z, H, W, roll):
+    cfg = self.cfg # @Yohan
     # Save the shortcut for skip-connection
     shortcut = x #torch.Size([1, 521280, 192]) -- ([1, 131040, 384])
 

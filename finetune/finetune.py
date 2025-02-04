@@ -118,7 +118,7 @@ test_dataloader = data.DataLoader(dataset=test_dataset,
 ########################Loading Checkpoint and Hyperparameters#############################
 ###########################################################################################
 #
-model = PanguModel(device=device).to(device)
+model = PanguModel(device=device, cfg=cfg).to(device)
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
 model.load_state_dict(checkpoint['model'], strict=False)
