@@ -19,6 +19,9 @@ class PatchEmbedding_pretrain(nn.Module):
     self.window_size = (2, 6, 12)  # Z,H,W
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
+    # @Yohan
+    self.depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
+    self.pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
 
   def check_image_size_2d(self, x, cfg):
     _, _, h, w = x.size()
@@ -108,16 +111,24 @@ class PatchEmbedding_pretrain(nn.Module):
 
 
     if cfg.GLOBAL.MODEL == "original":
-      input = input.view(input.shape[0], input.shape[1], 7, 181, 360)
+      input = input.view(input.shape[0], input.shape[1], 7, 181, 360) # (1,192,8,181,360)
+      x = torch.cat((input_surface, input), dim=2)
+      x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
+      x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
+
     if cfg.GLOBAL.MODEL == "cropped":
       input = input.view(input.shape[0], input.shape[1], 7, 54, 78)
+      x = torch.cat((input_surface, input), dim=2)  # (1,192,8,54,78)
+      x = x.squeeze(0)
+      x = torch.permute(x, (1, 0, 2, 3))
+      x = F.interpolate(x, size=(181, 360), mode='bilinear', align_corners=True)
+      x = self.depthwise_conv(x)
+      x = self.pointwise_conv(x)
+      x = torch.permute(x, (1, 0, 2, 3))
+      x = x.unsqueeze(0)
+      x = x.reshape(x.shape[0], x.shape[1], -1)  # (1, 192, 521280)
+      x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
     
-
-    x = torch.cat((input_surface, input), dim=2)
-
-    x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
-
-    x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
     return x
 
 
