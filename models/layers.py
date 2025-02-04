@@ -20,8 +20,8 @@ class PatchEmbedding_pretrain(nn.Module):
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
     # @Yohan
-    self.depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
-    self.pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
+    self.mena_depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
+    self.mena_pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
 
   def check_image_size_2d(self, x, cfg):
     _, _, h, w = x.size()
@@ -122,8 +122,8 @@ class PatchEmbedding_pretrain(nn.Module):
       x = x.squeeze(0)
       x = torch.permute(x, (1, 0, 2, 3))
       x = F.interpolate(x, size=(181, 360), mode='bilinear', align_corners=True)
-      x = self.depthwise_conv(x)
-      x = self.pointwise_conv(x)
+      x = self.mena_depthwise_conv(x)
+      x = self.mena_pointwise_conv(x)
       x = torch.permute(x, (1, 0, 2, 3))
       x = x.unsqueeze(0)
       x = x.reshape(x.shape[0], x.shape[1], -1)  # (1, 192, 521280)
@@ -546,8 +546,11 @@ class PatchRecovery_pretrain(nn.Module):
     self.dim = dim
     self.conv = nn.Conv1d(in_channels=dim, out_channels=160, kernel_size=1, stride=1)
     self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
+    # @Yohan. Depthwise and pointwise convolutions
+    self.mena_depthwise_conv = nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1, groups=384)  # Depthwise
+    self.mena_pointwise_conv = nn.Conv2d(384, 384, kernel_size=1)  # Pointwise
 
-  def forward(self, x, Z, H, W):
+  def forward(self, x, Z, H, W, cfg):
     # The inverse operation of the patch embedding operation, patch_size = (2, 4, 4) as in the original paper
     # Reshape x back to three dimensions
     x = torch.permute(x, (0, 2, 1))

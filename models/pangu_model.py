@@ -83,7 +83,7 @@ class PanguModel(nn.Module):
 
     # Recover the output fields from patches
     # output, output_surface = checkpoint.checkpoint(self._output_layer, x, 8, 181, 360)
-    output, output_surface = self._output_layer(x, 8, 181, 360)
+    output, output_surface = self._output_layer(x, 8, 181, 360, cfg)
 
     return output, output_surface
 
