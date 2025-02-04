@@ -191,7 +191,7 @@ class EarthSpecificBlock(nn.Module):
     self.norm1 = nn.LayerNorm(dim)
     self.norm2 = nn.LayerNorm(dim)
     self.linear = Mlp(dim, 0)
-    self.attention = EarthAttention3D(dim, heads, 0, self.window_size, device=self.device)
+    self.attention = EarthAttention3D(dim, heads, 0, self.window_size, device=self.device, cfg=cfg)
     self.padding_front, self.padding_back = 0, 5
     # self.pad3D = nn.ConstantPad3d((0, 0, 0, 0, self.padding_front,  self.padding_back), 0)
     if dim == 192:
@@ -240,8 +240,11 @@ class EarthSpecificBlock(nn.Module):
 
     # Zero-pad input if needed
     # x = self.pad3D(x) #torch.Size([1, 8, 186, 360, 192]) - [1, 8, 96, 180, 384]
-    x = F.pad(x, (0, 0, 0, 0, self.padding_front,  self.padding_back), 'constant')
-
+    if cfg.GLOBAL.MODEL == "original":
+      x = F.pad(x, (0, 0, 0, 0, self.padding_front,  self.padding_back), 'constant')
+    if cfg.GLOBAL.MODEL == "cropped":
+      x = F.pad(x, (0, 0, 3, 3), 'constant')
+    
 
     ori_shape = x.shape
 
@@ -321,13 +324,14 @@ class Mlp(nn.Module):
     return x
   
 class EarthAttention3D(nn.Module):
-  def __init__(self, dim, heads, dropout_rate, window_size, device):
+  def __init__(self, dim, heads, dropout_rate, window_size, device, cfg):
     super(EarthAttention3D, self).__init__()
     '''
     3D window attention with the Earth-Specific bias, 
     see https://github.com/microsoft/Swin-Transformer for the official implementation of 2D window attention.
     '''
     # Initialize several operations
+    self.cfg = cfg # @Yohan
     self.device = device
     self.linear1 = nn.Linear(dim, dim*3, bias=True) #self.qkv = nn.Linear(dim, dim * 3)?
     self.linear2 = nn.Linear(dim, dim)

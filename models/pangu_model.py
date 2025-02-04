@@ -60,7 +60,7 @@ class PanguModel(nn.Module):
     # Encoder, composed of two layers
     # Layer 1, shape (8, 360, 181, C), C = 192 as in the original paper
     
-    x = self.layers[0](x, 8, 181, 360)
+    x = self.layers[0](x, 8, 54, 78)
 
     # Store the tensor for skip-connection
     skip = x 
