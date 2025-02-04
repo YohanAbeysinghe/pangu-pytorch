@@ -413,6 +413,7 @@ class EarthAttention3D(nn.Module):
     
     
   def forward(self, x, mask): 
+    cfg = self.cfg #Yohan
     # Record the original shape of the input
     original_shape = x.shape #([30, 124, 144, 576]) swinir B_, N, C = x.shape#([30, 124, 144, 192])
     # Linear layer to create query, key and value
@@ -445,6 +446,10 @@ class EarthAttention3D(nn.Module):
     # EarthSpecificBias = torch.permute(EarthSpecificBias, (2, 3, 0, 1))#torch.Size([124,6,144, 144])
     # EarthSpecificBias = EarthSpecificBias.unsqueeze(0)# ->[1,124,6,144, 144]
     EarthSpecificBias = self.earth_specific_bias
+
+    if cfg.GLOBAL.MODEL == "cropped":
+      
+
 
     # Add the Earth-Specific bias to the attention matrix
     attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
