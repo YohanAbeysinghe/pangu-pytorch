@@ -574,7 +574,7 @@ class PatchRecovery_pretrain(nn.Module):
     self.mena_depthwise_conv = nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1, groups=384)  # Depthwise
     self.mena_pointwise_conv = nn.Conv2d(384, 384, kernel_size=1)  # Pointwise
 
-  def forward(self, x, Z, H, W, cfg):
+  def forward(self, x, Z, H, W):
     # The inverse operation of the patch embedding operation, patch_size = (2, 4, 4) as in the original paper
     # Reshape x back to three dimensions
     x = torch.permute(x, (0, 2, 1))
