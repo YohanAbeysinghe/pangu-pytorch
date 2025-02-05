@@ -60,7 +60,7 @@ class PanguModel(nn.Module):
     # Encoder, composed of two layers
     # Layer 1, shape (8, 360, 181, C), C = 192 as in the original paper
     
-    x = self.layers[0](x, 8, 54, 78)
+    x = self.layers[0](x, 8, 181, 360)
 
     # Store the tensor for skip-connection
     skip = x 
@@ -85,7 +85,7 @@ class PanguModel(nn.Module):
 
     # Recover the output fields from patches
     # output, output_surface = checkpoint.checkpoint(self._output_layer, x, 8, 181, 360)
-    output, output_surface = self._output_layer(x, 8, 181, 360, cfg)
+    output, output_surface = self._output_layer(x, 8, 181, 360)
 
     return output, output_surface
 
