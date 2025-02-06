@@ -38,7 +38,7 @@ class PanguModel(nn.Module):
 
     # Patch Recovery
     # self._output_layer = PatchRecovery(dims[-2])
-    self._output_layer = PatchRecovery_pretrain(dims[-2])
+    self._output_layer = PatchRecovery_pretrain(dims[-2], cfg=self.cfg)
     self.apply(self._init_weights)
 
   def _init_weights(self, m):

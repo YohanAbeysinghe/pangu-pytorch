@@ -563,7 +563,7 @@ class UpSample(nn.Module):
     return x
 
 class PatchRecovery_pretrain(nn.Module):
-  def __init__(self, dim):
+  def __init__(self, dim, cfg):
     super().__init__()
     '''Patch recovery operation'''
     # Hear we use two transposed convolutions to recover data
@@ -572,8 +572,9 @@ class PatchRecovery_pretrain(nn.Module):
     self.conv = nn.Conv1d(in_channels=dim, out_channels=160, kernel_size=1, stride=1)
     self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
     # @Yohan. Depthwise and pointwise convolutions
-    self.mena_depthwise_conv = nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1, groups=384)  # Depthwise
-    self.mena_pointwise_conv = nn.Conv2d(384, 384, kernel_size=1)  # Pointwise
+    if cfg.GLOBAL.MODEL == "cropped":
+      self.mena_depthwise_conv = nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1, groups=384)  # Depthwise
+      self.mena_pointwise_conv = nn.Conv2d(384, 384, kernel_size=1)  # Pointwise
 
   def forward(self, x, Z, H, W):
     # The inverse operation of the patch embedding operation, patch_size = (2, 4, 4) as in the original paper
