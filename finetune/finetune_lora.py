@@ -13,6 +13,7 @@ from models.pangu_model import PanguModel
 from models.pangu_sample import test, train
 
 import os
+import copy
 import logging
 import argparse
 import importlib
@@ -121,6 +122,8 @@ test_dataloader = data.DataLoader(dataset=test_dataset,
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
 
+module_copy = copy.deepcopy(model) # For later comparisons
+
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
 model.load_state_dict(checkpoint['model'], strict=False)
 #
@@ -128,7 +131,7 @@ model.load_state_dict(checkpoint['model'], strict=False)
 #####################################  PEFT  ##############################################
 ###########################################################################################
 #
-# print([(n, type(m)) for n, m in model.named_modules()])
+print([(n, type(m)) for n, m in model.named_modules()])
 
 target_modules = []
 
@@ -156,6 +159,29 @@ lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     gamma=0.5)
 
 start_epoch = 1
+#
+###########################################################################################
+###################################  Lora Logistics  ######################################
+###########################################################################################
+#
+for name, param in peft_model.base_model.named_parameters():
+    if "lora" not in name:
+        continue
+
+    print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
+
+params_before = dict(module_copy.named_parameters())
+for name, param in peft_model.base_model.named_parameters():
+    if "lora" in name:
+        continue
+
+    name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
+        "modules_to_save.default.", "")
+    param_before = params_before[name_before]
+    if torch.allclose(param, param_before):
+        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
+    else:
+        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
 #
 ###########################################################################################
 ############################## Logging Info ###############################################
