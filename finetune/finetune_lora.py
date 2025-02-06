@@ -16,6 +16,7 @@ import os
 import logging
 import argparse
 import importlib
+from peft import LoraConfig, get_peft_model
 from tensorboardX import SummaryWriter
 
 
@@ -115,7 +116,7 @@ test_dataloader = data.DataLoader(dataset=test_dataset,
                                   pin_memory=False)
 #
 ###########################################################################################
-################################Loading Checkpoint ########################################
+###################################Loading Checkpoint######################################
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
@@ -124,16 +125,31 @@ checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
 model.load_state_dict(checkpoint['model'], strict=False)
 #
 ###########################################################################################
-####################################Hyperparameters########################################
+#####################################  PEFT  ##############################################
 ###########################################################################################
 #
-#Fully finetune
-for param in model.parameters():
-    param.requires_grad = True
+# print([(n, type(m)) for n, m in model.named_modules()])
 
-optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
-                             lr = cfg.PG.TRAIN.LR,
-                             weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY)
+target_modules = []
+
+for n, m in model.named_modules():
+    if isinstance(m, nn.Linear):
+        target_modules.append(n)
+        print(f"appended {n}")
+
+config = LoraConfig(
+    r=16,
+    lora_alpha=16,
+    target_modules=target_modules,
+    lora_dropout=0.1,
+    modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+)
+
+peft_model = get_peft_model(model, config)
+
+optimizer = torch.optim.Adam(peft_model.parameters(),
+                             lr=cfg.PG.TRAIN.LR,
+                             weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY)
 
 lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     milestones=[25, 50],
@@ -155,17 +171,17 @@ print("weather statistics are loaded!")
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-model = train(model,
-              train_loader=train_dataloader,
-              val_loader=val_dataloader,
-              optimizer=optimizer,
-              lr_scheduler=lr_scheduler,
-              res_path = output_path,
-              device=device,
-              writer=writer, 
-              logger = logger,
-              start_epoch=start_epoch,
-              cfg = cfg)
+peft_model = train(peft_model,
+                   train_loader=train_dataloader,
+                   val_loader=val_dataloader,
+                   optimizer=optimizer,
+                   lr_scheduler=lr_scheduler,
+                   res_path = output_path,
+                   device=device,
+                   writer=writer, 
+                   logger = logger,
+                   start_epoch=start_epoch,
+                   cfg = cfg)
 #
 ###########################################################################################
 ################################### Testing  ##############################################
