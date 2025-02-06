@@ -21,8 +21,9 @@ class PatchEmbedding_pretrain(nn.Module):
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
     # @Yohan
-    self.mena_depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
-    self.mena_pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
+    if cfg.GLOBAL.MODEL == "cropped":
+      self.mena_depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
+      self.mena_pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
 
   def check_image_size_2d(self, x, cfg):
     _, _, h, w = x.size()

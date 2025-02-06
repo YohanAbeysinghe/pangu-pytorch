@@ -125,7 +125,8 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 module_copy = copy.deepcopy(model) # For later comparisons
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
-model.load_state_dict(checkpoint['model'], strict=False)
+model.load_state_dict(checkpoint['model'])
+# model.load_state_dict(checkpoint['model'], strict=False)
 #
 ###########################################################################################
 #####################################  PEFT  ##############################################
