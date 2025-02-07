@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
+sys.path.append("/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch")
 
 import torch
 import torch.nn as nn
@@ -165,24 +165,24 @@ start_epoch = 1
 ###################################  Lora Logistics  ######################################
 ###########################################################################################
 #
-for name, param in peft_model.base_model.named_parameters():
-    if "lora" not in name:
-        continue
+# for name, param in peft_model.base_model.named_parameters():
+#     if "lora" not in name:
+#         continue
 
-    print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
+#     print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
 
-params_before = dict(module_copy.named_parameters())
-for name, param in peft_model.base_model.named_parameters():
-    if "lora" in name:
-        continue
+# params_before = dict(module_copy.named_parameters())
+# for name, param in peft_model.base_model.named_parameters():
+#     if "lora" in name:
+#         continue
 
-    name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
-        "modules_to_save.default.", "")
-    param_before = params_before[name_before]
-    if torch.allclose(param, param_before):
-        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
-    else:
-        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
+#     name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
+#         "modules_to_save.default.", "")
+#     param_before = params_before[name_before]
+#     if torch.allclose(param, param_before):
+#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
+#     else:
+#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
 #
 ###########################################################################################
 ############################## Logging Info ###############################################

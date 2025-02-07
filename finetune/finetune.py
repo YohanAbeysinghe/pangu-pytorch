@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
+sys.path.append("/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch")
 
 import torch
 import torch.nn as nn
