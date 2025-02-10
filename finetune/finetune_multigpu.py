@@ -213,7 +213,8 @@ model = train(
     writer=writer, 
     logger = logger,
     start_epoch=start_epoch,
-    cfg = cfg
+    cfg = cfg,
+    rank=local_rank
     )
 
 cleanup_distributed()

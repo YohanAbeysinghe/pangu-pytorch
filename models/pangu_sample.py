@@ -15,7 +15,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
     logger.info("Training on rank = %d", rank)
     if rank==0:
-        logger.info("Number of iterations in training:", len(train_loader))
+        logger.info("Number of iterations in training: %d", len(train_loader))
 
     # Loss function
     criterion = nn.L1Loss(reduction='none')
@@ -106,9 +106,9 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 model.eval()
                 val_loss = 0.0
 
-                logger.info("Training on rank = %d", rank)
+                logger.info("Validation on rank = %d", rank)
                 if rank==0:
-                    logger.info("Number of iterations in validation:", len(val_loader))
+                    logger.info("Number of iterations in validation: %d", len(val_loader))
 
                 for id, val_data in enumerate(val_loader, 0):
                     input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
