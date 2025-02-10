@@ -42,7 +42,7 @@ torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
 ###########################################################################################
 #
 def setup_distributed():
-    dist.init_process_group(backend="gloo", timeout=timedelta(minutes=30))
+    dist.init_process_group(backend="gloo", timeout=timedelta(minutes=60))
     local_rank = int(os.environ["LOCAL_RANK"])
     torch.cuda.set_device(local_rank)
     return local_rank
@@ -216,24 +216,23 @@ model = train(
     cfg = cfg,
     rank=local_rank
     )
-
-cleanup_distributed()
 #
 ###########################################################################################
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
-                        map_location='cuda:0',
-                        weights_only=False)
+if local_rank==0:
+    best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
+                            map_location='cuda:0',
+                            weights_only=False)
 
-logger.info("Begin testing...")
+    logger.info("Begin testing...")
 
-test(test_loader=test_dataloader,
-     model=best_model,
-     device=device,
-     res_path=output_path,
-     cfg = cfg)
+    test(test_loader=test_dataloader,
+        model=best_model,
+        device=device,
+        res_path=output_path,
+        cfg = cfg)
 #
 ###########################################################################################
 ###########################################################################################
