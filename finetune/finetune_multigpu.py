@@ -101,7 +101,6 @@ train_sampler = DistributedSampler(
 train_dataloader = data.DataLoader(
     dataset=train_dataset,
     batch_size=cfg.PG.TRAIN.BATCH_SIZE//num_gpus,
-    shuffle=True,
     num_workers=0,
     pin_memory=False,
     sampler=train_sampler
