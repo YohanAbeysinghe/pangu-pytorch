@@ -167,17 +167,17 @@ class NetCDFDataset(data.Dataset):
         input_surface_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'surface', 'surface_{}.nc'.format(start_time_str[0:6])))  # 201501
         if 'expver' in input_surface_dataset.keys():
-            input_surface_dataset = input_surface_dataset.sel(time=start_time, expver=5, method='nearest')
+            input_surface_dataset = input_surface_dataset.sel(time=start_time, expver=5)
         else:
-            input_surface_dataset = input_surface_dataset.sel(time=start_time, method='nearest')
+            input_surface_dataset = input_surface_dataset.sel(time=start_time)
 
         # Prepare the input_upper dataset
         input_upper_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'upper', 'upper_{}.nc'.format(start_time_str[0:8])))
         if 'expver' in input_upper_dataset.keys():
-            input_upper_dataset = input_upper_dataset.sel(time=start_time, expver=5, method='nearest')
+            input_upper_dataset = input_upper_dataset.sel(time=start_time, expver=5)
         else:
-            input_upper_dataset = input_upper_dataset.sel(time=start_time, method='nearest')
+            input_upper_dataset = input_upper_dataset.sel(time=start_time)
         # make sure upper and surface variables are at the same time
         assert input_surface_dataset['time'] == input_upper_dataset['time']
         # input dataset to input numpy
@@ -187,16 +187,16 @@ class NetCDFDataset(data.Dataset):
         target_surface_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'surface', 'surface_{}.nc'.format(end_time_str[0:6])))  # 201501
         if 'expver' in input_surface_dataset.keys():
-            target_surface_dataset = target_surface_dataset.sel(time=end_time, expver=5, method='nearest')
+            target_surface_dataset = target_surface_dataset.sel(time=end_time, expver=5)
         else:
-            target_surface_dataset = target_surface_dataset.sel(time=end_time, method='nearest')
+            target_surface_dataset = target_surface_dataset.sel(time=end_time)
         # Prepare the target upper dataset
         target_upper_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'upper', 'upper_{}.nc'.format(end_time_str[0:8])))
         if 'expver' in target_upper_dataset.keys():
-            target_upper_dataset = target_upper_dataset.sel(time=end_time, expver=5, method='nearest')
+            target_upper_dataset = target_upper_dataset.sel(time=end_time, expver=5)
         else:
-            target_upper_dataset = target_upper_dataset.sel(time=end_time, method='nearest')
+            target_upper_dataset = target_upper_dataset.sel(time=end_time)
         # make sure the target upper and surface variables are at the same time
         assert target_upper_dataset['time'] == target_surface_dataset['time']
         # target dataset to target numpy
