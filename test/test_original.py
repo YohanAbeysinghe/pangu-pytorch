@@ -81,7 +81,7 @@ test_dataloader = data.DataLoader(
 ################################Loading Checkpoint ########################################
 ###########################################################################################
 #
-model = PanguModel(device=device).to(device)
+model = PanguModel(device=device, cfg=cfg).to(device)
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch)
 model.load_state_dict(checkpoint['model'])
 #
@@ -103,4 +103,5 @@ utils.mkdirs(output_path)
 test(test_loader=test_dataloader,
             model = model,
             device=model.device,
-            res_path = output_path)
+            res_path = output_path,
+            cfg=cfg)
