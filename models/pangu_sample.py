@@ -5,6 +5,7 @@ from torch import nn
 import torch
 import copy
 from era5_data import score
+import torch.distributed as dist
 import os
 
 def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, device, writer, logger, start_epoch,
@@ -137,52 +138,55 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                     if rank == 0:
                         logger.info(f"Epoch {i}, Iteration {id + 1}/{len(val_loader)}: Loss = {loss.item():.6f}")
 
-                val_loss /= len(val_loader)
-                writer.add_scalars('Loss',
-                                   {'train': epoch_loss,
-                                    'val': val_loss},
-                                   i)
-                logger.info("Validate at Epoch {} : {:.3f}".format(i, val_loss))
-                # Visualize the training process
-                png_path = os.path.join(res_path, "png_training")
-                utils.mkdirs(png_path)
-                # """
-                # Normalize the data back to the original space for visualization
-                output_val, output_surface_val = utils_data.normBackData(output_val, output_surface_val,
-                                                              aux_constants['weather_statistics_last'])
-                target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
-                                                              aux_constants['weather_statistics_last'])
+                if rank == 0:
+                    val_loss /= len(val_loader)
+                    writer.add_scalars('Loss',
+                                    {'train': epoch_loss,
+                                        'val': val_loss},
+                                    i)
+                    logger.info("Validate at Epoch {} : {:.3f}".format(i, val_loss))
+                    # Visualize the training process
+                    png_path = os.path.join(res_path, "png_training")
+                    utils.mkdirs(png_path)
+                    # """
+                    # Normalize the data back to the original space for visualization
+                    output_val, output_surface_val = utils_data.normBackData(output_val, output_surface_val,
+                                                                aux_constants['weather_statistics_last'])
+                    target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
+                                                                aux_constants['weather_statistics_last'])
 
-                utils.visuailze(output_val.detach().cpu().squeeze(),
-                                target_val.detach().cpu().squeeze(),
-                                input_val_raw.squeeze(),
-                                var='u',
-                                z=12,
-                                step=i,
-                                path=png_path,
-                                cfg=cfg)
-                utils.visuailze_surface(output_surface_val.detach().cpu().squeeze(),
-                                        target_surface_val.detach().cpu().squeeze(),
-                                        input_surface_val_raw.squeeze(),
-                                        var='msl',
-                                        step=i,
-                                        path=png_path,
-                                        cfg=cfg)
-                # Early stopping
-                if val_loss < best_loss:
-                    best_loss = val_loss
-                    best_model = copy.deepcopy(model)
-                    # Save the best model
-                    torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
-                    logger.info(
-                        f"current best model is saved at {i} epoch.")
-                    epochs_since_last_improvement = 0
-                else:
-                    epochs_since_last_improvement += 1
-                    if epochs_since_last_improvement >= 5:
+                    utils.visuailze(output_val.detach().cpu().squeeze(),
+                                    target_val.detach().cpu().squeeze(),
+                                    input_val_raw.squeeze(),
+                                    var='u',
+                                    z=12,
+                                    step=i,
+                                    path=png_path,
+                                    cfg=cfg)
+                    utils.visuailze_surface(output_surface_val.detach().cpu().squeeze(),
+                                            target_surface_val.detach().cpu().squeeze(),
+                                            input_surface_val_raw.squeeze(),
+                                            var='msl',
+                                            step=i,
+                                            path=png_path,
+                                            cfg=cfg)
+                    # Early stopping
+                    if val_loss < best_loss:
+                        best_loss = val_loss
+                        best_model = copy.deepcopy(model)
+                        # Save the best model
+                        torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
                         logger.info(
-                            f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
-                        break
+                            f"current best model is saved at {i} epoch.")
+                        epochs_since_last_improvement = 0
+                    else:
+                        epochs_since_last_improvement += 1
+                        if epochs_since_last_improvement >= 5:
+                            logger.info(
+                                f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
+                            break
+
+        dist.barrier()
 
         # print("lr",lr_scheduler.get_last_lr()[0])
     return best_model
