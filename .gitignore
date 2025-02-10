@@ -1,0 +1,6 @@
+era5_data/__pycache__/
+configs/__pycache__/
+models/__pycache__/
+configs/
+configs/config1.py
+configs/config2.py
