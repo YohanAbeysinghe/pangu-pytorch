@@ -119,13 +119,18 @@ val_dataset = utils_data.NetCDFDataset(
     cfg=cfg
     )
 
+val_sampler = DistributedSampler(
+    val_dataset,
+    shuffle=True,
+    drop_last=True
+    )
+
 val_dataloader = data.DataLoader(
     dataset=val_dataset,
-    batch_size=cfg.PG.VAL.BATCH_SIZE,
-    drop_last=True,
-    shuffle=False,
+    batch_size=cfg.PG.VAL.BATCH_SIZE//num_gpus,
     num_workers=0,
-    pin_memory=False
+    pin_memory=False,
+    sampler=val_sampler
     )
 
 test_dataset = utils_data.NetCDFDataset(
