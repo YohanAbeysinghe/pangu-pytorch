@@ -117,10 +117,7 @@ class NetCDFDataset(data.Dataset):
         upper = np.concatenate((upper_z[np.newaxis, ...], upper_q[np.newaxis, ...], upper_t[np.newaxis, ...],
                                 upper_u[np.newaxis, ...], upper_v[np.newaxis, ...]), axis=0)
         
-        if self.model_type == "original":
-            assert upper.shape == (5, 13, 721, 1440)
-        if self.model_type == "cropped":
-            assert upper.shape == (5,13,209,305) #@Yohan (5, 13, 721, 1440) ---> (5,13,209,305)
+        assert upper.shape == (5, 13, 721, 1440)
 
         # levels in descending order, require new memery space
         upper = upper[:, ::-1, :, :].copy()
@@ -132,10 +129,7 @@ class NetCDFDataset(data.Dataset):
         surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
                                   surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...]), axis=0)
         
-        if self.model_type == "original":
-            assert surface.shape == (4, 721, 1440)
-        if self.model_type == "cropped":
-            assert surface.shape == (4, 209,305) #@Yohan (4, 721, 1440) ---> (4,209,305)
+        assert surface.shape == (4, 721, 1440)
 
         return upper, surface
 
@@ -299,8 +293,6 @@ def LoadConstantMask(filepath=None, device="cpu"):
 
 def LoadConstantMask3(filepath=None, device="cpu", cfg=None):
     mask = np.load(os.path.join(filepath, "constantMaks3.npy")).astype(np.float32)
-    if cfg.GLOBAL.MODEL == "cropped":
-        mask = mask[:, :, 179:391, 0:305] # # @Yohan [1,3,724,1440] ---> [1,3,212,305]
     mask = torch.from_numpy(mask)
     return mask.to(device)
 
@@ -321,8 +313,6 @@ def computeStatistics(train_loader):
 def loadConstMask_h(filepath=None, device="cpu", cfg=None):
     mask_h = np.load(os.path.join(filepath, "Constant_17_output_0.npy")).astype(np.float32)
     mask_h = torch.from_numpy(mask_h)
-    if cfg.GLOBAL.MODEL == "cropped":
-        mask_h = mask_h[:, :, :, :, 180:389, 0:305] #@Yohan. cropped. [1,1,1,13,209,305]
     return mask_h.to(device)
 
 def loadVariableWeights(device="cpu", cfg=None):

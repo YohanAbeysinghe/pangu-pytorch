@@ -12,17 +12,17 @@ __C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
-__C.GLOBAL.MODEL = 'cropped'
+__C.GLOBAL.MODEL = 'pm25'
 
 for dirs in ['/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch']:
     if os.path.exists(dirs):
         __C.GLOBAL.PATH = dirs
 assert __C.GLOBAL.PATH is not None
 
-__C.PG_INPUT_PATH = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model'
+__C.PG_INPUT_PATH = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5'
 assert __C.PG_INPUT_PATH is not None
 
-__C.PG_OUT_PATH = os.path.join('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/results')
+__C.PG_OUT_PATH = os.path.join('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results')
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']

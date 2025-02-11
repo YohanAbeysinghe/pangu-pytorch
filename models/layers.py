@@ -20,19 +20,12 @@ class PatchEmbedding_pretrain(nn.Module):
     self.window_size = (2, 6, 12)  # Z,H,W
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
-    # @Yohan
-    if cfg.GLOBAL.MODEL == "cropped":
-      self.mena_depthwise_conv = nn.Conv2d(192, 192, kernel_size=3, padding=1, groups=192)  # Depthwise convolution
-      self.mena_pointwise_conv = nn.Conv2d(192, 192, kernel_size=1)  # Pointwise convolution
 
   def check_image_size_2d(self, x, cfg):
     _, _, h, w = x.size()
     # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]  # 6
     # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]  # 0
-    if cfg.GLOBAL.MODEL == "original":
-      x = F.pad(x, (0, 0, 0, 3), 'constant')
-    if cfg.GLOBAL.MODEL == "cropped":
-      x = F.pad(x, (4, 3, 4, 3), 'constant') # @Yohan. Think about the padding.
+    x = F.pad(x, (0, 0, 0, 3), 'constant')
     # x = self.Pad2D(x)
     return x
 
@@ -41,14 +34,8 @@ class PatchEmbedding_pretrain(nn.Module):
     # mod_pad_d = (self.window_size[0] - h % self.window_size[0]) % self.window_size[0]
     # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]
     # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]
-    if cfg.GLOBAL.MODEL == "original":
-      # @yohan x is changed from [1, 6, 13, 721, 1440]
-      x = F.pad(x, (0, 0, 0, 3, 0, 1), 'constant')
+    x = F.pad(x, (0, 0, 0, 3, 0, 1), 'constant')
       #@Yohan [1, 6, 14, 724,1440]
-    if cfg.GLOBAL.MODEL == "cropped":
-      # @yohan x is changed from [1, 6, 13, 209,305]
-      x = F.pad(x, (4, 3, 4, 3, 0, 1), 'constant') # @Yohan. Think about the padding. 
-      #@Yohan [1, 6, 14, 216,312] 
     # x = self.Pad3D(x)
     return x
 
@@ -72,10 +59,6 @@ class PatchEmbedding_pretrain(nn.Module):
 
     input_surface = self.check_image_size_2d(input_surface, cfg=cfg)
 
-    if cfg.GLOBAL.MODEL == "cropped":
-      # @Yohan Padding constant mask (1,3,212,305) --> (1,3,216,312)
-      self.constant_masks = F.pad(self.constant_masks, (4, 3, 2, 2), 'constant', 0)
-
     input_surface = torch.cat(
       (input_surface, self.constant_masks), dim=1,
       out=None)
@@ -89,12 +72,7 @@ class PatchEmbedding_pretrain(nn.Module):
     input_surface = self.conv_surface(input_surface)  # (1,192,65160)
 
 
-    if cfg.GLOBAL.MODEL == "original":
-        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
-    if cfg.GLOBAL.MODEL == "cropped":
-        input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 54, 78) #@Yohan
-
-
+    input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
     input = input.reshape(input.shape[0], input.shape[1], 1, input.shape[2], input.shape[-2], input.shape[-1])
     input = torch.permute(input, (0, 2, 3, 4, 5, 1))  # [1,1,13,721,1440,5]
     input = torch.flip(input, [2])  # [1,1,13,721,1440,5]
@@ -111,36 +89,13 @@ class PatchEmbedding_pretrain(nn.Module):
     input = input.permute(0, 1, 3, 5, 7, 2, 4, 6)  # (1,6,2,4,4, 7, 181,360)
     input = input.reshape(input.shape[0], input.shape[1] * input.shape[2] * input.shape[3] * input.shape[4], -1)
     input = self.conv(input)  # (1,192,456120)
+   
+    input = input.view(input.shape[0], input.shape[1], 7, 181, 360) # (1,192,8,181,360)
+    x = torch.cat((input_surface, input), dim=2)
+    x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
+    x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
 
 
-    if cfg.GLOBAL.MODEL == "original":
-      input = input.view(input.shape[0], input.shape[1], 7, 181, 360) # (1,192,8,181,360)
-      x = torch.cat((input_surface, input), dim=2)
-      x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
-      x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
-
-    if cfg.GLOBAL.MODEL == "cropped":
-
-      #################################################################
-      # # cropping with a MENA encoder
-      # input = input.view(input.shape[0], input.shape[1], 7, 54, 78)
-      # x = torch.cat((input_surface, input), dim=2)  # (1,192,8,54,78)
-      # x = x.squeeze(0)
-      # x = torch.permute(x, (1, 0, 2, 3))
-      # x = F.interpolate(x, size=(181, 360), mode='bilinear', align_corners=True)
-      # x = self.mena_depthwise_conv(x)
-      # x = self.mena_pointwise_conv(x)
-      # x = torch.permute(x, (1, 0, 2, 3))
-      # x = x.unsqueeze(0)
-      # x = x.reshape(x.shape[0], x.shape[1], -1)  # (1, 192, 521280)
-      # x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
-    
-      #################################################################
-      # just passing the cropped values
-      input = input.view(input.shape[0], input.shape[1], 7, 54, 78) # (1,192,7,181,360)
-      x = torch.cat((input_surface, input), dim=2)
-      x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192, 521280)
-      x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
 
 
 
@@ -245,10 +200,7 @@ class EarthSpecificBlock(nn.Module):
 
     # Zero-pad input if needed
     # x = self.pad3D(x) #torch.Size([1, 8, 186, 360, 192]) - [1, 8, 96, 180, 384]
-    if cfg.GLOBAL.MODEL == "original":
-      x = F.pad(x, (0, 0, 0, 0, self.padding_front,  self.padding_back), 'constant')
-    if cfg.GLOBAL.MODEL == "cropped":
-      x = F.pad(x, (0, 0, 3, 3), 'constant')
+    x = F.pad(x, (0, 0, 0, 0, self.padding_front,  self.padding_back), 'constant')
     
 
     ori_shape = x.shape
@@ -452,8 +404,6 @@ class EarthAttention3D(nn.Module):
     # EarthSpecificBias = EarthSpecificBias.unsqueeze(0)# ->[1,124,6,144, 144]
     EarthSpecificBias = self.earth_specific_bias
 
-    if cfg.GLOBAL.MODEL == "cropped":
-      EarthSpecificBias = EarthSpecificBias[:, 62:98, :, :, :]
       
     # Add the Earth-Specific bias to the attention matrix
     attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
@@ -571,10 +521,6 @@ class PatchRecovery_pretrain(nn.Module):
     self.dim = dim
     self.conv = nn.Conv1d(in_channels=dim, out_channels=160, kernel_size=1, stride=1)
     self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
-    # @Yohan. Depthwise and pointwise convolutions
-    if cfg.GLOBAL.MODEL == "cropped":
-      self.mena_depthwise_conv = nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1, groups=384)  # Depthwise
-      self.mena_pointwise_conv = nn.Conv2d(384, 384, kernel_size=1)  # Pointwise
 
   def forward(self, x, Z, H, W):
     # The inverse operation of the patch embedding operation, patch_size = (2, 4, 4) as in the original paper
