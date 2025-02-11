@@ -222,17 +222,21 @@ model = train(
 ###########################################################################################
 #
 if local_rank==0:
-    best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
-                            map_location='cuda:0',
-                            weights_only=False)
+    best_model = torch.load(
+        os.path.join(output_path,"models/best_model.pth"),
+        map_location='cuda:0',
+        weights_only=False
+        )
 
     logger.info("Begin testing...")
 
-    test(test_loader=test_dataloader,
+    test(
+        test_loader=test_dataloader,
         model=best_model,
         device=device,
         res_path=output_path,
-        cfg = cfg)
+        cfg = cfg
+        )
 #
 ###########################################################################################
 ###########################################################################################
