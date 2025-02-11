@@ -166,6 +166,11 @@ class NetCDFDataset(data.Dataset):
         # print(start_time_str[0:6])
         input_surface_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'surface', 'surface_{}.nc'.format(start_time_str[0:6])))  # 201501
+        
+        # Check if time exists in dataset before selecting
+        if start_time not in input_surface_dataset['time'].values:
+            return None
+        
         if 'expver' in input_surface_dataset.keys():
             input_surface_dataset = input_surface_dataset.sel(time=start_time, expver=5)
         else:
@@ -174,6 +179,11 @@ class NetCDFDataset(data.Dataset):
         # Prepare the input_upper dataset
         input_upper_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'upper', 'upper_{}.nc'.format(start_time_str[0:8])))
+    
+        # Check if time exists in dataset before selecting
+        if start_time not in input_upper_dataset['time'].values:
+            return None
+        
         if 'expver' in input_upper_dataset.keys():
             input_upper_dataset = input_upper_dataset.sel(time=start_time, expver=5)
         else:
@@ -209,7 +219,10 @@ class NetCDFDataset(data.Dataset):
         """Return input frames, target frames, and its corresponding time steps."""
         if self.training:
             iii = self.keys[index]
-            input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            try:
+                input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            except:
+                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
 
             if self.data_transform is not None:
                 input = self.data_transform(input)
@@ -217,7 +230,10 @@ class NetCDFDataset(data.Dataset):
 
         else:
             iii = self.keys[index]
-            input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            try:
+                input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            except:
+                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
 
         return input, input_surface, target, target_surface, periods
 

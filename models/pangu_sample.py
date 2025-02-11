@@ -41,6 +41,15 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
         for id, train_data in enumerate(train_loader):
             # Load weather data at time t as the input; load weather data at time t+336 as the output
             # Note the data need to be randomly shuffled
+
+            # Check if any of the data components are empty tensors
+            if (train_data[0] is None or train_data[0].sum() == 0 or
+                train_data[1] is None or train_data[1].sum() == 0 or
+                train_data[2] is None or train_data[2].sum() == 0 or
+                train_data[3] is None or train_data[3].sum() == 0):
+                print(f"Skipping batch {id} due to missing or empty data.")
+                continue  # Skip this batch if any data component is empty
+
             input, input_surface, target, target_surface, periods = train_data
             input, input_surface, target, target_surface = input.to(device), input_surface.to(device), target.to(
                 device), target_surface.to(device)
@@ -112,6 +121,16 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                     logger.info("Number of iterations in validation: %d", len(val_loader))
 
                 for id, val_data in enumerate(val_loader, 0):
+
+                    # Skip this batch if any data component is empty
+                    if (val_data[0].sum() == 0 or 
+                        val_data[1].sum() == 0 or 
+                        val_data[2].sum() == 0 or 
+                        val_data[3].sum() == 0
+                        ):
+                        # print(f"Skipping batch {id} due to missing or empty data.")
+                        continue
+                    
                     input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
                     input_val_raw, input_surface_val_raw = input_val, input_surface_val
                     input_val, input_surface_val, target_val, target_surface_val = input_val.to(

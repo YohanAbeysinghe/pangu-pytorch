@@ -3,9 +3,9 @@ import xarray as xr
 from datetime import datetime
 
 # Set paths to the folders containing the datasets
-surface_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_mena_12hour/yearly'
-cams_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/pm25/cropped_regridded_025_renamed/yearly'
-output_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_mena_12hour_withpm2p5/yearly'
+surface_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_12hour/yearly'
+cams_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/pm25/regridded_025_renamed/yearly'
+output_folder = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_12hour_withpm2p5/yearly'
 
 # Get list of surface files (surface_yyyymm.nc)
 surface_files = [f for f in os.listdir(surface_folder) if f.startswith('surface_') and f.endswith('.nc')]
