@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Input directory containing yearly NetCDF files
-INPUT_DIR="/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_12hour/yearly"
+INPUT_DIR="/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/data_prep/surface/surface_12hour_withpm2p5/yearly"
 
 # Output directory for monthly files
-OUTPUT_DIR="/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/surface"
+OUTPUT_DIR="/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/surface"
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -16,13 +16,6 @@ for INPUT_FILE in "$INPUT_DIR"/*.nc; do
 
     # Extract year from filename (assuming format like surface_YYYY.nc)
     YEAR=$(echo "$FILENAME" | grep -oE '[0-9]{4}')
-
-    # Skip files without a valid year
-    if [[ -z "$YEAR" ]]; then
-        echo "Skipping file $FILENAME (no valid year found)"
-        continue
-    fi
-
     echo "Processing file: $INPUT_FILE (Year: $YEAR)"
 
     # Loop through months 1 to 12
