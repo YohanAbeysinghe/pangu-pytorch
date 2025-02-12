@@ -16,9 +16,9 @@ class PatchEmbedding_pretrain(nn.Module):
     # Here we use convolution to partition data into cubes
     self.cfg = cfg # @Yohan
     self.conv = nn.Conv1d(in_channels=192, out_channels=dim, kernel_size=1, stride=1)
-    if cfg.GLOBAL.PATH == "original":
+    if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=112, out_channels=dim, kernel_size=1, stride=1)
-    if cfg.GLOBAL.PATH == "pm25":
+    if cfg.GLOBAL.MODEL == "pm25":
       self.conv_surface = nn.Conv1d(in_channels=128, out_channels=dim, kernel_size=1, stride=1)
     self.window_size = (2, 6, 12)  # Z,H,W
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
@@ -525,9 +525,9 @@ class PatchRecovery_pretrain(nn.Module):
     self.cfg = cfg
     self.conv = nn.Conv1d(in_channels=dim, out_channels=160, kernel_size=1, stride=1)
 
-    if cfg.GLOBAL.PATH == "original":
+    if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
-    if cfg.GLOBAL.PATH == "pm25":
+    if cfg.GLOBAL.MODEL == "pm25":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=80, kernel_size=1, stride=1) #@Yohan. Output channel size increased 64 --> 80 because of new variable.
 
   def forward(self, x, Z, H, W):
