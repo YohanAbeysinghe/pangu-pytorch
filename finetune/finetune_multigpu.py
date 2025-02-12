@@ -36,7 +36,6 @@ config_module = importlib.import_module(f"configs.{args.config}")
 cfg = config_module.cfg
 #
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
-os.environ["OMP_NUM_THREADS"] = "4" 
 #
 ###########################################################################################
 ############################## Logging Info ###############################################
@@ -244,8 +243,7 @@ if local_rank == 0:
     msg = '\n'
     msg += utils.torch_summarize(model, show_weights=False)
     logger.info(msg)
-
-logger.info("weather statistics are loaded!")
+    logger.info("weather statistics are loaded!")
 #
 ###########################################################################################
 ############################## Train and Validation #######################################

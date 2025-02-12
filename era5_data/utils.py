@@ -196,68 +196,6 @@ def save_errorScores(csv_path, z, q, t, u, v, surface, error, cfg):
 if __name__ == "__main__":
 
     """
-
-    s_transforms = []
-
-    s_transforms.append(T.RandomHorizontalFlip())
-
-    s_transforms.append(T.RandomVerticalFlip())
-    s_transforms = T.Compose(s_transforms)
-    s_transforms = None
-
-    nc_dataset = NetCDFDataset(dataset_path, 
-                               data_transform=None,
-                               training=False,
-                               validation = True, 
-                               startDate = '20150101',
-                               endDate='20150102',
-                               freq='H',
-                               horizon=5)
-    nc_dataloader = data.DataLoader(dataset=nc_dataset, batch_size=2,
-                                          drop_last=True, shuffle=True, num_workers=0, pin_memory=True)
-
-    print('Total length is', len(nc_dataset))
-
-
-    start_time = time.time()
-    nc_dataloader = iter(nc_dataloader)
-    for i in range(2):
-        input, input_surface, target, target_surface, periods = next(nc_dataloader)
-        print(input.shape) #torch.Size([1, 5, 13, 721, 1440])
-        print(input_surface.shape) #torch.Size([1, 4, 721, 1440])
-        print(target.shape) #torch.Size([1, 5, 13, 721, 1440])
-        print(target_surface.shape) #torch.Size([1, 4, 721, 1440])
-
-
-        fig = plt.figure()
-        ax1 = fig.add_subplot(221)
-        plot1 = ax1.contourf(input[0,0,0])
-        plt.colorbar(plot1,ax=ax1)
-        ax1.title.set_text('input 0')
-
-        ax2 = fig.add_subplot(222)
-        plot2 = ax2.contourf(input_surface[0,0].squeeze())
-        plt.colorbar(plot2,ax=ax2)
-        ax2.title.set_text('input_surface 0')
-
-        ax3 = fig.add_subplot(223)
-        plot3 = ax3.contourf(target[0,0,0].squeeze())
-        ax3.title.set_text('target 0')
-        plt.colorbar(plot3,ax=ax3)
-
-
-        ax4 = fig.add_subplot(224)
-        plot4 = ax4.contourf(target_surface[0,0].squeeze())
-        ax4.title.set_text('target_surface 0')
-        plt.colorbar(plot4,ax=ax4)
-        plt.tight_layout()
-        plt.savefig(fname='compare_{}_{}'.format(periods[0], periods[1]))
-        print("image saved!")
-
-
-    elapsed = time.time() - start_time
-    elapsed = str(timedelta(seconds=elapsed))
-    print("Elapsed [{}]".format(elapsed))
     """
 
 
