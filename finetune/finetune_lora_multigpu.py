@@ -6,6 +6,10 @@ import torch.nn as nn
 from torch.utils import data
 from torch.cuda.amp import autocast
 from torch.utils.data.distributed import DistributedSampler
+
+from datetime import timedelta
+import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # from era5_data.config import cfg
@@ -162,7 +166,38 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 module_copy = copy.deepcopy(model) # For later comparisons
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
-model.load_state_dict(checkpoint['model'])
+state_dict = checkpoint['model']
+#
+###########################################################################################
+################### Editing Checkpoint to Get New Variables ###############################
+###########################################################################################
+#
+if cfg.GLOBAL.MODEL == 'pm25':
+    # Learning rate for new variables.
+    lr=1e-4
+    model_state_dict = model.state_dict()
+
+    # Modify input layer for dimension matching and loading the existing weights
+    # for first 112 channels. Rest is initialized randomly.
+    new_input_weight = torch.zeros((192, 128, 1))
+    new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
+    state_dict['_input_layer.conv_surface.weight'] = new_input_weight
+
+    # Modify output layer for dimension matching and loading the existing weights
+    # for first 64 channels. Rest is initialized randomly.
+    new_output_weight = torch.zeros((80, 384, 1))
+    new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_output_weight[64:, :, :])
+    state_dict['_output_layer.conv_surface.weight'] = new_output_weight
+
+    # Modify output layer bias. Loading first 64 biases.
+    new_output_bias = torch.zeros(80)
+    new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
+    state_dict['_output_layer.conv_surface.bias'] = new_output_bias
+
+# Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
+model.load_state_dict(state_dict, strict=False)
 #
 ###########################################################################################
 #####################################  PEFT  ##############################################
