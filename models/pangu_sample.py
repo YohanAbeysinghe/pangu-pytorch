@@ -43,10 +43,10 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             # Note the data need to be randomly shuffled
 
             # Check if any of the data components are empty tensors
-            if (train_data[0] is None or train_data[0].sum() == 0 or
-                train_data[1] is None or train_data[1].sum() == 0 or
-                train_data[2] is None or train_data[2].sum() == 0 or
-                train_data[3] is None or train_data[3].sum() == 0):
+            if (train_data[0].sum() == 0 or
+                train_data[1].sum() == 0 or
+                train_data[2].sum() == 0 or
+                train_data[3].sum() == 0):
                 print(f"Skipping batch {id} due to missing or empty data.")
                 continue  # Skip this batch if any data component is empty
 

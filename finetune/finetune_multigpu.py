@@ -198,22 +198,23 @@ model.load_state_dict(state_dict, strict=False)
 ####################################Hyperparameters########################################
 ###########################################################################################
 #
+optimizer = torch.optim.Adam(
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr = cfg.PG.TRAIN.LR,
+    weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY
+    )
+
+lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    optimizer,
+    milestones=[25, 50],
+    gamma=0.5
+    )
+
 if cfg.GLOBAL.MODEL == 'original':
     #Fully finetune
     for param in model.parameters():
         param.requires_grad = True
 
-    optimizer = torch.optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr = cfg.PG.TRAIN.LR,
-        weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY
-        )
-
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer,
-        milestones=[25, 50],
-        gamma=0.5
-        )
 
 if cfg.GLOBAL.MODEL == 'pm25':
     # Fine-tuning layers (MENA scaling)
