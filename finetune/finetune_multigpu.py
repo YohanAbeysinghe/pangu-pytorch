@@ -36,6 +36,7 @@ config_module = importlib.import_module(f"configs.{args.config}")
 cfg = config_module.cfg
 #
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
+os.environ["OMP_NUM_THREADS"] = "4" 
 #
 ###########################################################################################
 ############################## Logging Info ###############################################
