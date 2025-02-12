@@ -542,7 +542,7 @@ class PatchRecovery_pretrain(nn.Module):
     output = self.conv(output)
     # patch_size
     output = output.reshape(output.shape[0], 5, self.patch_size[0], self.patch_size[1], self.patch_size[2], Z - 1, H,
-                            W)  # [1, 5, 2, 4, 4, 7, 181, 360
+                            W)  # [1, 5, 2, 4, 4, 7, 181, 360]
     output = torch.permute(output, (0, 1, 5, 2, 6, 3, 7, 4))
     output = output.reshape(output.shape[0], 5, 14, 724, 1440)
     # Crop the output to remove zero-paddings
@@ -556,12 +556,24 @@ class PatchRecovery_pretrain(nn.Module):
     output_surface = x[:, :, 0, :, :]
     output_surface = output_surface.view(output_surface.shape[0], self.dim, -1)
     output_surface = self.conv_surface(output_surface)
-    output_surface = output_surface.view(output_surface.shape[0], 4, self.patch_size[1], self.patch_size[2], H, W)
-    output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
-    output_surface = output_surface.reshape(output_surface.shape[0], 4, 724, 1440)
-    output_surface = output_surface[:, :, height_slice, :]
-    output_surface = output_surface.view(output_surface.shape[0], 4, 1, 721, 1440)
-    # output_surface = output_surface * self.surface_std + self.surface_mean
-    output_surface = output_surface.view(output_surface.shape[0], 4, 721, 1440)
+
+    #Last few steps are hard coded for number of surface inputs.
+    if self.cfg.GLOBAL.MODEL == "original":
+      output_surface = output_surface.view(output_surface.shape[0], 4, self.patch_size[1], self.patch_size[2], H, W)
+      output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
+      output_surface = output_surface.reshape(output_surface.shape[0], 4, 724, 1440)
+      output_surface = output_surface[:, :, height_slice, :]
+      output_surface = output_surface.view(output_surface.shape[0], 4, 1, 721, 1440)
+      # output_surface = output_surface * self.surface_std + self.surface_mean
+      output_surface = output_surface.view(output_surface.shape[0], 4, 721, 1440)
+
+    if self.cfg.GLOBAL.MODEL == "pm25":
+      output_surface = output_surface.view(output_surface.shape[0], 5, self.patch_size[1], self.patch_size[2], H, W)
+      output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
+      output_surface = output_surface.reshape(output_surface.shape[0], 5, 724, 1440)
+      output_surface = output_surface[:, :, height_slice, :]
+      output_surface = output_surface.view(output_surface.shape[0], 5, 1, 721, 1440)
+      # output_surface = output_surface * self.surface_std + self.surface_mean
+      output_surface = output_surface.view(output_surface.shape[0], 5, 721, 1440)
 
     return output, output_surface

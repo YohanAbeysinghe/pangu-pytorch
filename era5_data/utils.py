@@ -123,7 +123,7 @@ def visuailze_surface(output, target, input, var, step, path, cfg):
 
 def mkdir(path):
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
 
 def mkdirs(paths):
