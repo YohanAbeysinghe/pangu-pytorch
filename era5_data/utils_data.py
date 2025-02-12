@@ -76,7 +76,7 @@ class NetCDFDataset(data.Dataset):
         self.training = training
         self.validation = validation
         self.data_transform = data_transform
-        self.model_type = cfg.GLOBAL.MODEL
+        self.cfg = cfg
 
         if training:
             self.keys = list(pd.date_range(start=startDate, end=endDate, freq=freq))
@@ -126,10 +126,19 @@ class NetCDFDataset(data.Dataset):
         surface_u10 = dataset_surface['u10'].values.astype(np.float32)
         surface_v10 = dataset_surface['v10'].values.astype(np.float32)
         surface_t2m = dataset_surface['t2m'].values.astype(np.float32)
-        surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
+
+        if self.cfg.GLOBAL.MODEL == "original":
+            surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
                                   surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...]), axis=0)
-        
-        assert surface.shape == (4, 721, 1440)
+            assert surface.shape == (4, 721, 1440)
+
+        if self.cfg.GLOBAL.MODEL == "pm25":
+            surface_pm2p5 = dataset_surface['pm2p5'].values.astype(np.float32)
+            surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
+                                    surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...],
+                                    surface_pm2p5[np.newaxis, ...]),
+                                    axis=0)
+            assert surface.shape == (5, 721, 1440)
 
         return upper, surface
 

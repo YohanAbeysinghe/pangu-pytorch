@@ -215,7 +215,6 @@ if cfg.GLOBAL.MODEL == 'original':
     for param in model.parameters():
         param.requires_grad = True
 
-
 if cfg.GLOBAL.MODEL == 'pm25':
     # Fine-tuning layers (MENA scaling)
     for param in model.parameters():
