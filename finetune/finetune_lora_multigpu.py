@@ -41,27 +41,6 @@ cfg = config_module.cfg
 torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
 #
 ###########################################################################################
-############################## Distributed Training #######################################
-###########################################################################################
-#
-def setup_distributed():
-    dist.init_process_group(backend="gloo", timeout=timedelta(minutes=60))
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(local_rank)
-    return local_rank
-
-def cleanup_distributed():
-    dist.destroy_process_group()
-
-local_rank = setup_distributed()
-device = torch.device(f"cuda:{local_rank}")
-print(f"Using device: {device}")
-
-num_gpus = torch.cuda.device_count()
-if local_rank == 0:
-    print(f"Number of GPUs available: {num_gpus}")
-#
-###########################################################################################
 ############################## Logging Info ###############################################
 ###########################################################################################
 #
@@ -76,6 +55,27 @@ writer = SummaryWriter(writer_path)
 logger_name = "finetune_fully" + str(cfg.PG.HORIZON)
 utils.logger_info(logger_name, os.path.join(output_path, logger_name + '.log'))
 logger = logging.getLogger(logger_name)
+#
+###########################################################################################
+############################## Distributed Training #######################################
+###########################################################################################
+#
+def setup_distributed():
+    dist.init_process_group(backend="gloo", timeout=timedelta(minutes=60))
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    return local_rank
+
+def cleanup_distributed():
+    dist.destroy_process_group()
+
+local_rank = setup_distributed()
+device = torch.device(f"cuda:{local_rank}")
+logger.info(f"Using device: {device}")
+
+num_gpus = torch.cuda.device_count()
+if local_rank == 0:
+    logger.info(f"Number of GPUs available: {num_gpus}")
 #
 ###########################################################################################
 ################################### Data Loading ##########################################
@@ -291,13 +291,13 @@ if local_rank == 0:
     msg += utils.torch_summarize(model, show_weights=False)
     logger.info(msg)
 
-print("weather statistics are loaded!")
+logger.info("weather statistics are loaded!")
 #
 ###########################################################################################
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank)
+peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
 peft_model = train(
     peft_model,
