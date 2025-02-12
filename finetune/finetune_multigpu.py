@@ -198,22 +198,53 @@ model.load_state_dict(state_dict, strict=False)
 ####################################Hyperparameters########################################
 ###########################################################################################
 #
-#Fully finetune
-for param in model.parameters():
-    param.requires_grad = True
+if cfg.GLOBAL.MODEL == 'original':
+    #Fully finetune
+    for param in model.parameters():
+        param.requires_grad = True
 
-optimizer = torch.optim.Adam(
-    filter(lambda p: p.requires_grad, model.parameters()),
-    lr = cfg.PG.TRAIN.LR,
-    weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr = cfg.PG.TRAIN.LR,
+        weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY
+        )
+
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=[25, 50],
+        gamma=0.5
+        )
+
+if cfg.GLOBAL.MODEL == 'pm25':
+    # Fine-tuning layers (MENA scaling)
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Set requires_grad for new layers
+    for param in model._input_layer.depthwise_conv.parameters():
+        param.requires_grad = True
+    for param in model._input_layer.pointwise_conv.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.depthwise_conv.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.pointwise_conv.parameters():
+        param.requires_grad = True
+    for param in model._input_layer.conv_surface.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
+
+    # Optimizer
+    optimizer = torch.optim.Adam(
+        list(model._input_layer.depthwise_conv.parameters()) +
+        list(model._input_layer.pointwise_conv.parameters()) +
+        list(model._output_layer.depthwise_conv.parameters()) +
+        list(model._output_layer.pointwise_conv.parameters()) +
+        list(model._input_layer.conv_surface.parameters()) +
+        list(model._output_layer.conv_surface.parameters()),
+        lr=lr
     )
-
-lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-    optimizer,
-    milestones=[25, 50],
-    gamma=0.5
-    )
-
+ 
 start_epoch = 1
 #
 ###########################################################################################
