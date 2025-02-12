@@ -19,7 +19,6 @@ import logging
 
 def logger_info(logger_name, log_path='default_logger.log'):
     ''' set up logger
-    modified by Kai Zhang (github: https://github.com/cszn)
     '''
     log = logging.getLogger(logger_name)
     if log.hasHandlers():
