@@ -247,16 +247,27 @@ class NetCDFDataset(data.Dataset):
         return self.__class__.__name__
 
 
-def weatherStatistics_output(filepath=None, device="cpu"):
+def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
     """
     :return:1, 5, 13, 1, 1
     """
-    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-    surface_mean = torch.from_numpy(surface_mean)
-    surface_std = torch.from_numpy(surface_std)
-    surface_mean = surface_mean.view(1, 4, 1, 1)
-    surface_std = surface_std.view(1, 4, 1, 1)
+    if cfg.GLOBAL.MODEL == "original":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+        surface_mean = surface_mean.view(1, 4, 1, 1)
+        surface_std = surface_std.view(1, 4, 1, 1)
+
+    if cfg.GLOBAL.MODEL == "pm25":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) # @Yohan. Adding a new mean ndvi.
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) # @Yohan. Adding a new std for ndvi.
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+        surface_mean = surface_mean.view(1, 5, 1, 1) # @Yohan
+        surface_std = surface_std.view(1, 5, 1, 1) # @Yohan
 
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)  # (13,1,1,5)
     upper_mean = upper_mean[::-1, :, :, :].copy()
@@ -272,14 +283,23 @@ def weatherStatistics_output(filepath=None, device="cpu"):
         device)
 
 
-def weatherStatistics_input(filepath=None, device="cpu"):
+def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
     """
     :return:13, 1, 1, 5
     """
-    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-    surface_mean = torch.from_numpy(surface_mean)
-    surface_std = torch.from_numpy(surface_std)
+    if cfg.GLOBAL.MODEL == "original":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+
+    if cfg.GLOBAL.MODEL == "pm25":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) #Adding a new mean ndvi.
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) #Adding a new std for ndvi.
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
 
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)
     upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
@@ -331,8 +351,8 @@ def loadVariableWeights(device="cpu", cfg=None):
 
 def loadAllConstants(device, cfg=None):
     constants = dict()
-    constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)  # height has inversed shape, order is reversed in model
-    constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
+    constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg)  # height has inversed shape, order is reversed in model
+    constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg)
     # constants['constant_maps'] = LoadConstantMask(device=device)
     constants['constant_maps'] = LoadConstantMask3(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg) #not able to be equal
     constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)

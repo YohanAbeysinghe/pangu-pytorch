@@ -26,7 +26,7 @@ __C.PG_OUT_PATH = os.path.join('/pfs/lustrep1/scratch/project_462000472/akhtar/c
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
-__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m']
+__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m','pm2p5']
 __C.ERA5_UPPER_VARIABLES = ['z','q','t','u','v']
 
 __C.PG = edict()
@@ -40,7 +40,7 @@ __C.PG.TRAIN.END_TIME = '20190110' #'20200531' '20190703'  '20171231'
 __C.PG.TRAIN.FREQUENCY = '12h'
 __C.PG.TRAIN.BATCH_SIZE = 4
 __C.PG.TRAIN.UPPER_WEIGHTS = [3.00, 0.60, 1.50, 0.77, 0.54]
-__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00]
+__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00, 5.00]
 __C.PG.TRAIN.SAVE_INTERVAL = 1
 
 __C.PG.VAL = edict()
