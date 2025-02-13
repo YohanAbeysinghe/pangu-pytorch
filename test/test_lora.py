@@ -23,7 +23,7 @@ starts  = time.time()
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
-parser.add_argument('--type_net', type=str, default='reproduce_original', help='Name of the output directory')
+parser.add_argument('--type_net', type=str, default='reproduce_lora', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -82,7 +82,7 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/results/finetune_02_01/models/best_model.pth', weights_only=True)
+checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch)
 model.load_state_dict(checkpoint['model'])
 #
 ###########################################################################################
