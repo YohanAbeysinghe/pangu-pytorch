@@ -82,8 +82,9 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch)
-model.load_state_dict(checkpoint['model'])
+checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/results/testlora/models/best_model_nonddp.pth',
+                        weights_only=False)
+model.load_state_dict(checkpoint)
 #
 ###########################################################################################
 ############################## Logging Info ###############################################

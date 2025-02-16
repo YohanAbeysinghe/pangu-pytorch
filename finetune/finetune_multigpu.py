@@ -70,7 +70,8 @@ local_rank = setup_distributed()
 device = torch.device(f"cuda:{local_rank}")
 logger.info(f"Using device: {device}")
 
-num_gpus = torch.cuda.device_count()
+# num_gpus = torch.cuda.device_count()
+num_gpus = 4
 if local_rank == 0:
     logger.info(f"Number of GPUs available: {num_gpus}")
 #

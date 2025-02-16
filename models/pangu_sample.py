@@ -195,6 +195,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                         best_model = copy.deepcopy(model)
                         # Save the best model
                         torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
+                        torch.save(best_model.module.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
                         logger.info(
                             f"current best model is saved at {i} epoch.")
                         epochs_since_last_improvement = 0
