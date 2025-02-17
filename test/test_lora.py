@@ -5,6 +5,7 @@ import argparse
 import importlib
 
 import torch
+import torch.nn as nn
 from torch.utils import data
 
 import sys
@@ -13,6 +14,7 @@ sys.path.append("/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling
 from era5_data import utils, utils_data
 from models.pangu_model import PanguModel
 from models.pangu_sample import test
+from peft import LoraConfig, get_peft_model
 
 starts  = time.time()
 
@@ -82,9 +84,26 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/results/testlora/models/best_model_nonddp.pth',
+checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_model/results/lora_tune/models/best_model_nonddp.pth',
                         weights_only=False)
-model.load_state_dict(checkpoint)
+
+target_modules = []
+
+for n, m in model.named_modules():
+    if isinstance(m, nn.Linear):
+        target_modules.append(n)
+
+config = LoraConfig(
+    r=16,
+    lora_alpha=16,
+    target_modules=target_modules,
+    lora_dropout=0.1,
+    modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+)
+
+peft_model = get_peft_model(model, config)
+
+peft_model.load_state_dict(checkpoint)
 #
 ###########################################################################################
 ############################## Logging Info ###############################################

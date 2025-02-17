@@ -85,6 +85,8 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
             if rank == 0:
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
+            
+            torch.cuda.empty_cache()
 
 
 

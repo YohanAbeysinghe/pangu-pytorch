@@ -244,11 +244,11 @@ if cfg.GLOBAL.MODEL == 'pm25':
     for param in model.parameters():
         param.requires_grad = False
 
-    # # Set requires_grad for edited layers
-    # for param in model._input_layer.conv_surface.parameters():
-    #     param.requires_grad = True
-    # for param in model._output_layer.conv_surface.parameters():
-    #     param.requires_grad = True
+    # Set requires_grad for edited layers
+    for param in model._input_layer.conv_surface.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
 
     # # Optimizer
     # optimizer = torch.optim.Adam(
