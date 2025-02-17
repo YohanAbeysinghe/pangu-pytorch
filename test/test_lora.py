@@ -25,7 +25,7 @@ starts  = time.time()
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
-parser.add_argument('--type_net', type=str, default='reproduce_lora', help='Name of the output directory')
+parser.add_argument('--type_net', type=str, default='test_lora_withoutpm', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -120,8 +120,10 @@ utils.mkdirs(output_path)
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-test(test_loader=test_dataloader,
-            model = model,
-            device=model.device,
-            res_path = output_path,
-            cfg=cfg)
+test(
+    test_loader=test_dataloader,
+     model = model,
+     device=model.device,
+     res_path = output_path,
+     cfg=cfg
+     )
