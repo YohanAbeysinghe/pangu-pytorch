@@ -58,36 +58,79 @@ class logger_print(object):
         pass
 
 
+# def visuailze(output, target, input, var, z, step, path, cfg):
+#     # levels = np.linspace(-30, 90, 9)
+#     variables = cfg.ERA5_UPPER_VARIABLES
+#     var = variables.index(var)
+#     fig = plt.figure(figsize=(16, 2))
+#     ax1 = fig.add_subplot(143)
+
+#     plot1 = ax1.imshow(output[var, z, :, :], cmap="RdBu")  # , levels = levels, extend = 'min')
+#     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
+#     ax1.title.set_text('pred')
+
+#     ax2 = fig.add_subplot(142)
+#     plot2 = ax2.imshow(target[var, z, :, :], cmap="RdBu")
+#     plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
+#     ax2.title.set_text('gt')
+
+#     ax3 = fig.add_subplot(141)
+#     plot3 = ax3.imshow(input[var, z, :, :], cmap="RdBu")
+#     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
+#     ax3.title.set_text('input')
+
+#     ax4 = fig.add_subplot(144)
+#     plot4 = ax4.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
+#     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
+#     ax4.title.set_text('bias')
+
+#     plt.tight_layout()
+#     plt.savefig(fname=os.path.join(path, '{}_{}_Z{}'.format(step, variables[var], z)))
+#     plt.close(fig)
+
 def visuailze(output, target, input, var, z, step, path, cfg):
-    # levels = np.linspace(-30, 90, 9)
     variables = cfg.ERA5_UPPER_VARIABLES
     var = variables.index(var)
-    fig = plt.figure(figsize=(16, 2))
-    ax1 = fig.add_subplot(143)
+    
+    # Ensure all inputs are NumPy arrays
+    output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
+    target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
+    input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
+    # Compute vmin and vmax across all relevant data for consistent color scaling
+    vmin = input[var, z, :, :].min()
+    vmax = input[var, z, :, :].max()
 
-    plot1 = ax1.imshow(output[var, z, :, :], cmap="RdBu")  # , levels = levels, extend = 'min')
+
+    fig = plt.figure(figsize=(20, 2))  # Increased figure size to accommodate the new subplot
+    ax1 = fig.add_subplot(154)
+    plot1 = ax1.imshow(output[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('pred')
 
-    ax2 = fig.add_subplot(142)
-    plot2 = ax2.imshow(target[var, z, :, :], cmap="RdBu")
+    ax2 = fig.add_subplot(153)
+    plot2 = ax2.imshow(target[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
     ax2.title.set_text('gt')
 
-    ax3 = fig.add_subplot(141)
-    plot3 = ax3.imshow(input[var, z, :, :], cmap="RdBu")
+    ax3 = fig.add_subplot(151)
+    plot3 = ax3.imshow(input[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
     ax3.title.set_text('input')
 
-    ax4 = fig.add_subplot(144)
+    ax4 = fig.add_subplot(155)
     plot4 = ax4.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
     ax4.title.set_text('bias')
 
+    # New subplot for the sliced region of 'input'
+    ax5 = fig.add_subplot(152)
+    plot5 = ax5.imshow(input[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
+    ax5.title.set_text('input_slice')
+
     plt.tight_layout()
     plt.savefig(fname=os.path.join(path, '{}_{}_Z{}'.format(step, variables[var], z)))
     plt.close(fig)
-
 
 def visuailze_surface(output, target, input, var, step, path, cfg):
     variables = cfg.ERA5_SURFACE_VARIABLES

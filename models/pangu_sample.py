@@ -214,7 +214,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
     return best_model
 
 
-def test(test_loader, model, device, res_path, cfg):
+def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
     # set up empty dics for rmses and anormaly correlation coefficients
     rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v = dict(), dict(), dict(), dict(), dict()
     rmse_surface = dict()
@@ -241,6 +241,14 @@ def test(test_loader, model, device, res_path, cfg):
         # Transfer to the output to the original data range
         output_test, output_surface_test = utils_data.normBackData(output_test, output_surface_test,
                                                         aux_constants['weather_statistics_last'])
+        
+
+        if MENA_crop:
+            output_test = output_test[:, :, :, 179:388, 720:1026]
+            target_test = target_test[:, :, :, 179:388, 720:1026]
+            output_surface_test = output_surface_test[:, :, 179:388, 720:1026]
+            target_surface_test = target_surface_test[:, :, 179:388, 720:1026]
+
 
         target_time = periods_test[1][batch_id]
 
@@ -272,6 +280,7 @@ def test(test_loader, model, device, res_path, cfg):
         target_test = target_test.squeeze()
         output_surface_test = output_surface_test.squeeze()
         target_surface_test = target_surface_test.squeeze()
+
 
         rmse_upper_z[target_time] = score.weighted_rmse_torch_channels(output_test[0],
                                                                        target_test[0]).detach().cpu().numpy()

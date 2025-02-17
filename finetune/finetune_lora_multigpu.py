@@ -174,7 +174,6 @@ state_dict = checkpoint['model']
 #
 if cfg.GLOBAL.MODEL == 'pm25':
     # Learning rate for new variables.
-    lr=1e-4
     model_state_dict = model.state_dict()
 
     # Modify input layer for dimension matching and loading the existing weights

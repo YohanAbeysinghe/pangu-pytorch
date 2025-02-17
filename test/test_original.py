@@ -104,4 +104,5 @@ test(test_loader=test_dataloader,
             model = model,
             device=model.device,
             res_path = output_path,
-            cfg=cfg)
+            cfg=cfg,
+            MENA_crop=True)
