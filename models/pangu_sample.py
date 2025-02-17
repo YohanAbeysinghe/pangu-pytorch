@@ -263,7 +263,8 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                                 z = 2,
                                 step=target_time, 
                                 path=png_path,
-                                cfg=cfg)
+                                cfg=cfg,
+                                MENA_crop = MENA_crop)
         #['msl', 'u','v','t2m']
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
                             target_surface_test.detach().cpu().squeeze(),
@@ -271,7 +272,8 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                             var='u10',
                             step=target_time,
                             path=png_path,
-                            cfg=cfg)
+                            cfg=cfg,
+                            MENA_crop = MENA_crop)
   
 
         # Compute test scores
