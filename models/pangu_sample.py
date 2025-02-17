@@ -47,7 +47,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 train_data[1].sum() == 0 or
                 train_data[2].sum() == 0 or
                 train_data[3].sum() == 0):
-                print(f"Skipping batch {id} due to missing or empty data.")
+                # print(f"Skipping batch {id} due to missing or empty data.")
                 continue  # Skip this batch if any data component is empty
 
             input, input_surface, target, target_surface, periods = train_data
@@ -227,6 +227,15 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
 
     batch_id = 0
     for id, data in enumerate(test_loader, 0):
+        
+        # Check if any of the data components are empty tensors
+        if (data[0].sum() == 0 or
+            data[1].sum() == 0 or
+            data[2].sum() == 0 or
+            data[3].sum() == 0):
+            # print(f"Skipping batch {id} due to missing or empty data.")
+            continue  # Skip this batch if any data component is empty
+
         # Store initial input for different models
         print(f"predict on {id}")
         input_test, input_surface_test, target_test, target_surface_test, periods_test = data
