@@ -62,7 +62,7 @@ def validate(val_loader, model, device, res_path, cfg, logger, writer, start_epo
                 target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
                                                                 aux_constants['weather_statistics_last'])
 
-                utils.visuailze(output_val.detach().cpu().squeeze(),
+                utils.visualize(output_val.detach().cpu().squeeze(),
                                 target_val.detach().cpu().squeeze(),
                                 input_val_raw.squeeze(),
                                 var='u',
@@ -71,7 +71,7 @@ def validate(val_loader, model, device, res_path, cfg, logger, writer, start_epo
                                 path=png_path,
                                 cfg=cfg)
                 
-                utils.visuailze_surface(output_surface_val.detach().cpu().squeeze(),
+                utils.visualize_surface(output_surface_val.detach().cpu().squeeze(),
                                         target_surface_val.detach().cpu().squeeze(),
                                         input_surface_val_raw.squeeze(),
                                         var='msl',

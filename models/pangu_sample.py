@@ -176,7 +176,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                     target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
                                                                 aux_constants['weather_statistics_last'])
 
-                    utils.visuailze(output_val.detach().cpu().squeeze(),
+                    utils.visualize(output_val.detach().cpu().squeeze(),
                                     target_val.detach().cpu().squeeze(),
                                     input_val_raw.squeeze(),
                                     var='u',
@@ -184,7 +184,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                                     step=i,
                                     path=png_path,
                                     cfg=cfg)
-                    utils.visuailze_surface(output_surface_val.detach().cpu().squeeze(),
+                    utils.visualize_surface(output_surface_val.detach().cpu().squeeze(),
                                             target_surface_val.detach().cpu().squeeze(),
                                             input_surface_val_raw.squeeze(),
                                             var='msl',
@@ -256,7 +256,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
         png_path = os.path.join(res_path, "png")
         utils.mkdirs(png_path)
 
-        utils.visuailze(output_test.detach().cpu().squeeze(),
+        utils.visualize(output_test.detach().cpu().squeeze(),
                                 target_test.detach().cpu().squeeze(), 
                                 input_test.detach().cpu().squeeze(),
                                 var='t',
@@ -265,7 +265,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                                 path=png_path,
                                 cfg=cfg)
         #['msl', 'u','v','t2m']
-        utils.visuailze_surface(output_surface_test.detach().cpu().squeeze(),
+        utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
                             target_surface_test.detach().cpu().squeeze(),
                             input_surface_test.detach().cpu().squeeze(),
                             var='u10',
