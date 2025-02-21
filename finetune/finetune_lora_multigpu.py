@@ -19,6 +19,7 @@ from models.pangu_sample import test, train
 
 import os
 import copy
+import wandb
 import logging
 import argparse
 import importlib
@@ -31,7 +32,7 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
 args = parser.parse_args()
 
@@ -213,11 +214,11 @@ for n, m in model.named_modules():
         print(f"appended {n}")
 
 config = LoraConfig(
-    r=16,
+    r=cfg.PG.TRAIN.Low_Rank,
     lora_alpha=16,
     target_modules=target_modules,
     lora_dropout=0.1,
-    modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+    # modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
 )
 
 peft_model = get_peft_model(model, config)
@@ -241,21 +242,14 @@ if cfg.GLOBAL.MODEL == 'original':
 
 if cfg.GLOBAL.MODEL == 'pm25':
     # Fine-tuning layers (MENA scaling)
-    # for param in model.parameters():
-    #     param.requires_grad = False
+    for param in model.parameters():
+        param.requires_grad = False
 
     # Set requires_grad for edited layers
     for param in model._input_layer.conv_surface.parameters():
         param.requires_grad = True
     for param in model._output_layer.conv_surface.parameters():
         param.requires_grad = True
-
-    # # Optimizer
-    # optimizer = torch.optim.Adam(
-    #     list(model._input_layer.conv_surface.parameters()) +
-    #     list(model._output_layer.conv_surface.parameters()),
-    #     lr=lr
-    # )
 
 start_epoch = 1
 #
@@ -281,6 +275,26 @@ start_epoch = 1
 #         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
 #     else:
 #         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
+#
+###########################################################################################
+################################## WandB ##################################################
+###########################################################################################
+#
+# Initialize W&B with your project name and hyperparameters
+os.environ["WANDB_API_KEY"] = "f26dcc1314b4959cd257db827dcdcff1a2e54f2e"
+
+if local_rank == 0:
+    wandb.init(project="climate_modeling", name="Feb_21_2", config={
+        "learning_rate": cfg.PG.TRAIN.LR,
+        "batch_size": cfg.PG.TRAIN.BATCH_SIZE,
+        "num_epochs": cfg.PG.TRAIN.EPOCHS,
+        "num_gpus": num_gpus,
+        "start_time": cfg.PG.TRAIN.START_TIME,
+        "end_time": cfg.PG.TRAIN.END_TIME,
+        "output_path": output_path,
+        "pm2.5_weightage": cfg.PG.TRAIN.SURFACE_WEIGHTS[4],
+        "Law_rank": cfg.PG.TRAIN.Low_Rank,
+    })
 #
 ###########################################################################################
 ############################## Logging Info ###############################################

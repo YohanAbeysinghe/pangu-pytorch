@@ -1,12 +1,14 @@
 import sys
 sys.path.append("/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch")
-from era5_data import utils, utils_data
-from torch import nn
-import torch
+
+import os
 import copy
+import torch
+from torch import nn
+import wandb
 from era5_data import score
 import torch.distributed as dist
-import os
+from era5_data import utils, utils_data
 
 def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, device, writer, logger, start_epoch,
           rank=0, cfg=None):
@@ -19,6 +21,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
         logger.info("Number of iterations in training: %d", len(train_loader))
 
     # Loss function
+    num_iterations_per_epoch = len(train_loader)
     criterion = nn.L1Loss(reduction='none')
 
     # training epoch
@@ -83,7 +86,19 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
             epoch_loss += loss.item()
 
-            if rank == 0:
+            if rank == 0 and id%10 == 0:
+                step = num_iterations_per_epoch*(i-1) + id
+                wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
+                wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
+                wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
+                wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
+                wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
+                wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
+                wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
+                wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
+                wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
+                wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
+                wandb.log({"train_loss": loss.item()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
             torch.cuda.empty_cache()
@@ -93,12 +108,10 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
         epoch_loss /= len(train_loader)
         if rank == 0:
             logger.info("Epoch {} : {:.3f}".format(i, epoch_loss))
+            wandb.log({"epoch_loss": epoch_loss})
+
         loss_list.append(epoch_loss)
         lr_scheduler.step()
-        # scaler.update(lr_scheduler)
-        #
-        # for name, param in model.named_parameters():
-        #   writer.add_histogram(name, param.data, i)
 
         model_save_path = os.path.join(res_path, 'models')
         utils.mkdirs(model_save_path)
