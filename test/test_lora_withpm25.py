@@ -25,7 +25,7 @@ starts  = time.time()
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config2', help='Option to load different configs')
-parser.add_argument('--type_net', type=str, default='test_lora_withpm', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='test_lora_withpm', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -46,10 +46,10 @@ print(f"Predicting on {device}")
 #
 PATH = cfg.PG_INPUT_PATH
 
-output_path = os.path.join(cfg.PG_OUT_PATH, args.type_net)
+output_path = os.path.join(cfg.PG_OUT_PATH, args.output)
 utils.mkdirs(output_path)
 
-logger_name = args.type_net + str(cfg.PG.HORIZON)
+logger_name = args.output + str(cfg.PG.HORIZON)
 utils.logger_info(logger_name, os.path.join(output_path, logger_name + '_test.log'))
 
 logger = logging.getLogger(logger_name)
@@ -84,7 +84,7 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/finetune_lora_withpm2.5/models/best_model_nonddp.pth',
+checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/train_with_pm_5years_3/models/train_model_nonddp_1.pth',
                         weights_only=False)
 
 target_modules = []
@@ -121,7 +121,8 @@ utils.mkdirs(output_path)
 ###########################################################################################
 #
 test(test_loader=test_dataloader,
-            model = model,
-            device=model.device,
-            res_path = output_path,
-            cfg=cfg)
+     model = model,
+     device=model.device,
+     res_path = output_path,
+     cfg=cfg,
+     MENA_crop=True)

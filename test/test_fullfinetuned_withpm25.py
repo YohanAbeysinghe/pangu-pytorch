@@ -23,7 +23,7 @@ starts  = time.time()
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config2', help='Option to load different configs')
-parser.add_argument('--type_net', type=str, default='fullfinetuned_withpm', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='fullfinetuned_withpm', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -44,10 +44,10 @@ print(f"Predicting on {device}")
 #
 PATH = cfg.PG_INPUT_PATH
 
-output_path = os.path.join(cfg.PG_OUT_PATH, args.type_net)
+output_path = os.path.join(cfg.PG_OUT_PATH, args.output)
 utils.mkdirs(output_path)
 
-logger_name = args.type_net + str(cfg.PG.HORIZON)
+logger_name = args.output + str(cfg.PG.HORIZON)
 utils.logger_info(logger_name, os.path.join(output_path, logger_name + '_test.log'))
 
 logger = logging.getLogger(logger_name)

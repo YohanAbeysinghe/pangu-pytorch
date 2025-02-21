@@ -113,8 +113,9 @@ def visualize_surface(output, target, input, var, step, path, cfg, MENA_crop=Fal
     output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
     target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
     input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
-    vmin = input[var, :, :].min()
-    vmax = input[var, :, :].max()
+    # Use percentiles for robust color scaling, which ignores extreme outliers
+    vmin = np.percentile(input[var, :, :], 0)
+    vmax = np.percentile(input[var, :, :], 80)
 
     ax1 = fig.add_subplot(151)
     plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
