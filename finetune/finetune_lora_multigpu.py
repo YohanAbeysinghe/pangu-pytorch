@@ -74,7 +74,7 @@ device = torch.device(f"cuda:{local_rank}")
 logger.info(f"Using device: {device}")
 
 num_gpus = torch.cuda.device_count()
-num_gpus = 1
+# num_gpus = 1
 if local_rank == 0:
     logger.info(f"Number of GPUs available: {num_gpus}")
 #
@@ -241,8 +241,8 @@ if cfg.GLOBAL.MODEL == 'original':
 
 if cfg.GLOBAL.MODEL == 'pm25':
     # Fine-tuning layers (MENA scaling)
-    for param in model.parameters():
-        param.requires_grad = False
+    # for param in model.parameters():
+    #     param.requires_grad = False
 
     # Set requires_grad for edited layers
     for param in model._input_layer.conv_surface.parameters():
@@ -330,7 +330,8 @@ if local_rank==0:
         model=best_model,
         device=device,
         res_path=output_path,
-        cfg = cfg
+        cfg = cfg,
+        MENA_crop = True
         )
 #
 ###########################################################################################

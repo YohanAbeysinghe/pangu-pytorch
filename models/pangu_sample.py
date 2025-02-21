@@ -110,6 +110,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                          "lr_scheduler": lr_scheduler.state_dict(),
                          "epoch": i}
             torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
+            torch.save(model.module.state_dict(), os.path.join(model_save_path, 'train_model_nonddp_{}.pth'.format(i)))
             # torch.save(model, os.path.join(model_save_path,'train_{}.pth'.format(i)))
 
         # Begin to validate
@@ -278,7 +279,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
                             target_surface_test.detach().cpu().squeeze(),
                             input_surface_test.detach().cpu().squeeze(),
-                            var='u10',
+                            var='pm2p5',
                             step=target_time,
                             path=png_path,
                             cfg=cfg,
