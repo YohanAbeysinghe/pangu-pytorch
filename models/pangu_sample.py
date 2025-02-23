@@ -54,8 +54,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 continue  # Skip this batch if any data component is empty
 
             input, input_surface, target, target_surface, periods = train_data
-            input, input_surface, target, target_surface = input.to(device), input_surface.to(device), target.to(
-                device), target_surface.to(device)
+            input, input_surface, target, target_surface = input.to(device), input_surface.to(device), target.to(device), target_surface.to(device)
 
             optimizer.zero_grad()
             # with torch.autocast(device_type='cuda', dtype=torch.float16):
@@ -64,9 +63,12 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
             # Note the input and target need to be normalized (done within the function)
             # Call the model and get the output
-            output, output_surface = model(input, input_surface, aux_constants['weather_statistics'],
+            output, output_surface = model(input,
+                                           input_surface,
+                                           aux_constants['weather_statistics'],
                                            aux_constants['constant_maps'],
-                                           aux_constants['const_h'])  # (1,5,13,721,1440)
+                                           aux_constants['const_h']
+                                           )  # (1,5,13,721,1440)
 
             # Normalize gt to make loss compariable
             target, target_surface = utils_data.normData(target, target_surface, aux_constants['weather_statistics_last'])
@@ -149,16 +151,16 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                     
                     input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
                     input_val_raw, input_surface_val_raw = input_val, input_surface_val
-                    input_val, input_surface_val, target_val, target_surface_val = input_val.to(
-                        device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
+                    input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
 
                     # Inference
                     output_val, output_surface_val = model(input_val, input_surface_val,
                                                            aux_constants['weather_statistics'],
                                                            aux_constants['constant_maps'], aux_constants['const_h'])
                     # Noralize the gt to make the loss compariable
-                    target_val, target_surface_val = utils_data.normData(target_val, target_surface_val,
-                                                              aux_constants['weather_statistics_last'])
+                    target_val, target_surface_val = utils_data.normData(target_val,
+                                                                         target_surface_val,
+                                                                         aux_constants['weather_statistics_last'])
 
                     val_loss_surface = criterion(output_surface_val, target_surface_val)
                     weighted_val_loss_surface = torch.mean(val_loss_surface * surface_weights)
@@ -175,36 +177,44 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
                 if rank == 0:
                     val_loss /= len(val_loader)
-                    writer.add_scalars('Loss',
-                                    {'train': epoch_loss,
-                                        'val': val_loss},
-                                    i)
+                    writer.add_scalars(
+                        'Loss',
+                        {'train': epoch_loss,
+                         'val': val_loss},
+                         i
+                         )
+                    
                     logger.info("Validate at Epoch {} : {:.3f}".format(i, val_loss))
                     # Visualize the training process
                     png_path = os.path.join(res_path, "png_training")
                     utils.mkdirs(png_path)
-                    # """
                     # Normalize the data back to the original space for visualization
                     output_val, output_surface_val = utils_data.normBackData(output_val, output_surface_val,
-                                                                aux_constants['weather_statistics_last'])
+                                                                             aux_constants['weather_statistics_last'])
                     target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
-                                                                aux_constants['weather_statistics_last'])
+                                                                             aux_constants['weather_statistics_last'])
 
-                    utils.visualize(output_val.detach().cpu().squeeze(),
-                                    target_val.detach().cpu().squeeze(),
-                                    input_val_raw.squeeze(),
-                                    var='u',
-                                    z=12,
-                                    step=i,
-                                    path=png_path,
-                                    cfg=cfg)
-                    utils.visualize_surface(output_surface_val.detach().cpu().squeeze(),
-                                            target_surface_val.detach().cpu().squeeze(),
-                                            input_surface_val_raw.squeeze(),
-                                            var='msl',
-                                            step=i,
-                                            path=png_path,
-                                            cfg=cfg)
+                    utils.visualize(
+                        output_val.detach().cpu().squeeze(),
+                        target_val.detach().cpu().squeeze(),
+                        input_val_raw.squeeze(),
+                        var='u',
+                        z=12,
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+                    
+                    utils.visualize_surface(
+                        output_surface_val.detach().cpu().squeeze(),
+                        target_surface_val.detach().cpu().squeeze(),
+                        input_surface_val_raw.squeeze(),
+                        var='msl',
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+                    
                     # Early stopping
                     if val_loss < best_loss:
                         best_loss = val_loss
@@ -212,14 +222,13 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                         # Save the best model
                         torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
                         torch.save(best_model.module.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
-                        logger.info(
-                            f"current best model is saved at {i} epoch.")
+                        logger.info(f"current best model is saved at {i} epoch.")
                         epochs_since_last_improvement = 0
+
                     else:
                         epochs_since_last_improvement += 1
                         if epochs_since_last_improvement >= 5:
-                            logger.info(
-                                f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
+                            logger.info(f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
                             break
 
         dist.barrier()
@@ -253,8 +262,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
         # Store initial input for different models
         print(f"predict on {id}")
         input_test, input_surface_test, target_test, target_surface_test, periods_test = data
-        input_test, input_surface_test, target_test, target_surface_test = \
-            input_test.to(device), input_surface_test.to(device), target_test.to(device), target_surface_test.to(device)
+        input_test, input_surface_test, target_test, target_surface_test = input_test.to(device), input_surface_test.to(device), target_test.to(device), target_surface_test.to(device)
         model.eval()
 
         # Inference
@@ -280,23 +288,25 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
         utils.mkdirs(png_path)
 
         utils.visualize(output_test.detach().cpu().squeeze(),
-                                target_test.detach().cpu().squeeze(), 
-                                input_test.detach().cpu().squeeze(),
-                                var='t',
-                                z = 2,
-                                step=target_time, 
-                                path=png_path,
-                                cfg=cfg,
-                                MENA_crop = MENA_crop)
+                        target_test.detach().cpu().squeeze(), 
+                        input_test.detach().cpu().squeeze(),
+                        var='t',
+                        z = 2,
+                        step=target_time, 
+                        path=png_path,
+                        cfg=cfg,
+                        MENA_crop = MENA_crop
+                        )
         #['msl', 'u','v','t2m']
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
-                            target_surface_test.detach().cpu().squeeze(),
-                            input_surface_test.detach().cpu().squeeze(),
-                            var='pm2p5',
-                            step=target_time,
-                            path=png_path,
-                            cfg=cfg,
-                            MENA_crop = MENA_crop)
+                                target_surface_test.detach().cpu().squeeze(),
+                                input_surface_test.detach().cpu().squeeze(),
+                                var='pm2p5',
+                                step=target_time,
+                                path=png_path,
+                                cfg=cfg,
+                                MENA_crop = MENA_crop
+                                )
   
 
         # Compute test scores
