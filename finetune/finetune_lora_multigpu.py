@@ -344,8 +344,7 @@ if local_rank==0:
         model=best_model,
         device=device,
         res_path=output_path,
-        cfg = cfg,
-        MENA_crop = True
+        cfg = cfg
         )
 #
 ###########################################################################################

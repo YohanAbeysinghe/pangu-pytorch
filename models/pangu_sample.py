@@ -76,12 +76,20 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             # We use the MAE loss to train the model
             # Different weight can be applied for different fields if needed
             loss_surface = criterion(output_surface, target_surface)
+            if cfg.GLOBAL.MENA_crop:
+                loss_surface = loss_surface[:, :, :, 179:388, 720:1026]
+
             weighted_surface_loss = torch.mean(loss_surface * surface_weights)
 
             loss_upper = criterion(output, target)
+            if cfg.GLOBAL.MENA_crop:
+                loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
+
             weighted_upper_loss = torch.mean(loss_upper * upper_weights)
             # The weight of surface loss is 0.25
             loss = weighted_upper_loss + weighted_surface_loss * 0.25
+
+            breakpoint()
 
             loss.backward()
             optimizer.step()
@@ -237,7 +245,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
     return best_model
 
 
-def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
+def test(test_loader, model, device, res_path, cfg):
     # set up empty dics for rmses and anormaly correlation coefficients
     rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v = dict(), dict(), dict(), dict(), dict()
     rmse_surface = dict()
@@ -274,7 +282,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                                                         aux_constants['weather_statistics_last'])
         
 
-        if MENA_crop:
+        if cfg.GLOBAL.MENA_crop:
             output_test = output_test[:, :, :, 179:388, 720:1026]
             target_test = target_test[:, :, :, 179:388, 720:1026]
             output_surface_test = output_surface_test[:, :, 179:388, 720:1026]
@@ -294,8 +302,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                         z = 2,
                         step=target_time, 
                         path=png_path,
-                        cfg=cfg,
-                        MENA_crop = MENA_crop
+                        cfg=cfg
                         )
         #['msl', 'u','v','t2m']
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
@@ -304,8 +311,7 @@ def test(test_loader, model, device, res_path, cfg, MENA_crop=None):
                                 var='pm2p5',
                                 step=target_time,
                                 path=png_path,
-                                cfg=cfg,
-                                MENA_crop = MENA_crop
+                                cfg=cfg
                                 )
   
 

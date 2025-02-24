@@ -58,7 +58,7 @@ class logger_print(object):
         pass
 
 
-def visualize(output, target, input, var, z, step, path, cfg, MENA_crop=False):
+def visualize(output, target, input, var, z, step, path, cfg):
     variables = cfg.ERA5_UPPER_VARIABLES
     var = variables.index(var)
     fig = plt.figure(figsize=(20, 2))
@@ -76,7 +76,7 @@ def visualize(output, target, input, var, z, step, path, cfg, MENA_crop=False):
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
-    if MENA_crop:
+    if cfg.GLOBAL.MENA_crop:
         # New subplot for the sliced region of 'input'
         ax2 = fig.add_subplot(152)
         plot2 = ax2.imshow(input[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
@@ -103,7 +103,7 @@ def visualize(output, target, input, var, z, step, path, cfg, MENA_crop=False):
     plt.close(fig)
 
 
-def visualize_surface(output, target, input, var, step, path, cfg, MENA_crop=False):
+def visualize_surface(output, target, input, var, step, path, cfg):
     variables = cfg.ERA5_SURFACE_VARIABLES
     var = variables.index(var)
     fig = plt.figure(figsize=(20, 2))
@@ -122,7 +122,7 @@ def visualize_surface(output, target, input, var, step, path, cfg, MENA_crop=Fal
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
-    if MENA_crop:
+    if cfg.GLOBAL.MENA_crop:
         # New subplot for the sliced region of 'input'
         ax2 = fig.add_subplot(152)
         plot2 = ax2.imshow(input[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
