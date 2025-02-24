@@ -13,6 +13,7 @@ __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
 __C.GLOBAL.MODEL = 'original'
+__C.GLOBAL.MENA_crop = True
 
 for dirs in ['/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch']:
     if os.path.exists(dirs):

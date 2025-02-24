@@ -76,20 +76,22 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             # We use the MAE loss to train the model
             # Different weight can be applied for different fields if needed
             loss_surface = criterion(output_surface, target_surface)
+
+            # Cropping into a slightly larger region than MENA.
             if cfg.GLOBAL.MENA_crop:
-                loss_surface = loss_surface[:, :, :, 179:388, 720:1026]
+                # loss_surface = loss_surface[:, :, 179:388, 720:1026]
+                loss_surface = loss_surface[:, :, 175:392, 718:1030]
 
             weighted_surface_loss = torch.mean(loss_surface * surface_weights)
 
             loss_upper = criterion(output, target)
             if cfg.GLOBAL.MENA_crop:
-                loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
+                # loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
+                loss_upper = loss_upper[:, :, :, 175:392, 718:1030]
 
             weighted_upper_loss = torch.mean(loss_upper * upper_weights)
             # The weight of surface loss is 0.25
             loss = weighted_upper_loss + weighted_surface_loss * 0.25
-
-            breakpoint()
 
             loss.backward()
             optimizer.step()
