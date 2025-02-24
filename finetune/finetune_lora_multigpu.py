@@ -284,7 +284,7 @@ start_epoch = 1
 os.environ["WANDB_API_KEY"] = "f26dcc1314b4959cd257db827dcdcff1a2e54f2e"
 
 if local_rank == 0:
-    wandb.init(project="climate_modeling", name="Feb_22_2", config={
+    wandb.init(project="climate_modeling", name="Feb_24_1", config={
         "learning_rate": cfg.PG.TRAIN.LR,
         "batch_size": cfg.PG.TRAIN.BATCH_SIZE,
         "num_epochs": cfg.PG.TRAIN.EPOCHS,
