@@ -22,7 +22,7 @@ starts  = time.time()
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config2', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='fullfinetuned_withpm', help='Name of the output directory')
 args = parser.parse_args()
 
@@ -82,7 +82,7 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/finetune_original_withpm2.5/models/best_model_nonddp.pth',
+checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/Feb_26_3/models/train_model_nonddp_1.pth',
                         weights_only=True)
 model.load_state_dict(checkpoint)
 #

@@ -24,7 +24,7 @@ starts  = time.time()
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config2', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='test_lora_withpm', help='Name of the output directory')
 args = parser.parse_args()
 
@@ -84,8 +84,6 @@ test_dataloader = data.DataLoader(
 ###########################################################################################
 #
 model = PanguModel(device=device, cfg=cfg).to(device)
-checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/train_with_pm_5years_3/models/train_model_nonddp_1.pth',
-                        weights_only=False)
 
 target_modules = []
 
@@ -94,14 +92,17 @@ for n, m in model.named_modules():
         target_modules.append(n)
 
 config = LoraConfig(
-    r=16,
+    r=cfg.PG.TRAIN.Low_Rank,
     lora_alpha=16,
     target_modules=target_modules,
     lora_dropout=0.1,
-    modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+    # modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
 )
 
 peft_model = get_peft_model(model, config)
+
+checkpoint = torch.load('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results/Feb_26_3/models/train_model_nonddp_1.pth',
+                        weights_only=False)
 
 peft_model.load_state_dict(checkpoint)
 #
@@ -124,5 +125,5 @@ test(test_loader=test_dataloader,
      model = model,
      device=model.device,
      res_path = output_path,
-     cfg=cfg,
-     MENA_crop=True)
+     cfg=cfg
+     )

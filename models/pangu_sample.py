@@ -93,8 +93,16 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             # The weight of surface loss is 0.25
             loss = weighted_upper_loss + weighted_surface_loss * 0.25
 
+            # #Accounting for NaN losses.
+            # if torch.isnan(loss) or torch.isinf(loss):
+            #     print(f"Loss is NaN or Inf at iteration {id}. Skipping this iteration.")
+            #     continue  # Skip this batch and move to the next one
+
             loss.backward()
             optimizer.step()
+
+            # Gradient Clipping
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             epoch_loss += loss.item()
 
@@ -104,7 +112,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
                 wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
                 wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
-                wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
+                # wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
                 wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
                 wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
                 wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
