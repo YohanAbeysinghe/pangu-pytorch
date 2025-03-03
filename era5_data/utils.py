@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-sys.path.append("/home/yohan.abeysinghe/pangu-pytorch")
+sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
 from typing import Tuple, List
 import torch
 import random
