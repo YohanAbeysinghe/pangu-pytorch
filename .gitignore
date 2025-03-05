@@ -6,7 +6,6 @@ configs/config1.py
 configs/config2.py
 archive/
 finetune/finetune_multigpu.py
-.gitignore
 configs/config1.py
 wandb/
 .gitignore
