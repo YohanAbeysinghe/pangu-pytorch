@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import sys
-sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
+sys.path.append("/scratch/project_462000803/akhtar/climate_project/pangu-pytorch")
 
 from typing import Tuple, List
 import torch

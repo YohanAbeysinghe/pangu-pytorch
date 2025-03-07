@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch")
+sys.path.append("/scratch/project_462000803/akhtar/climate_project/pangu-pytorch")
 
 import os
 import copy

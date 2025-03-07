@@ -15,15 +15,15 @@ __C.GLOBAL.NUM_THREADS = 2
 __C.GLOBAL.MODEL = 'pm25'
 __C.GLOBAL.MENA_crop = True
 
-for dirs in ['/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/models/pangu-pytorch']:
+for dirs in ['/scratch/project_462000803/akhtar/climate_project/pangu-pytorch']:
     if os.path.exists(dirs):
         __C.GLOBAL.PATH = dirs
 assert __C.GLOBAL.PATH is not None
 
-__C.PG_INPUT_PATH = '/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5'
+__C.PG_INPUT_PATH = '/scratch/project_462000803/akhtar/climate_project/data/pangu_data'
 assert __C.PG_INPUT_PATH is not None
 
-__C.PG_OUT_PATH = os.path.join('/pfs/lustrep1/scratch/project_462000472/akhtar/climate_modeling/pangu-data/non_cropped_with_pm2.5/results')
+__C.PG_OUT_PATH = os.path.join('/scratch/project_462000803/akhtar/climate_project/data/pangu_data/results/cropped')
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
