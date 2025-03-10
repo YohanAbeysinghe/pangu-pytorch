@@ -13,6 +13,7 @@ from models.pangu_model import PanguModel
 from models.pangu_sample import test, train
 
 import os
+import wandb
 import logging
 import argparse
 import importlib
@@ -140,6 +141,25 @@ lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     gamma=0.5)
 
 start_epoch = 1
+#
+###########################################################################################
+################################## WandB ##################################################
+###########################################################################################
+#
+# Initialize W&B with your project name and hyperparameters
+os.environ["WANDB_API_KEY"] = "f26dcc1314b4959cd257db827dcdcff1a2e54f2e"
+
+wandb.init(project="climate_modeling", name=args.output, config={
+    "learning_rate": cfg.PG.TRAIN.LR,
+    "batch_size": cfg.PG.TRAIN.BATCH_SIZE,
+    "num_epochs": cfg.PG.TRAIN.EPOCHS,
+    "num_gpus": 1,
+    "start_time": cfg.PG.TRAIN.START_TIME,
+    "end_time": cfg.PG.TRAIN.END_TIME,
+    "output_path": output_path,
+    # "pm2.5_weightage": cfg.PG.TRAIN.SURFACE_WEIGHTS[4],
+    # "Law_rank": cfg.PG.TRAIN.Low_Rank,
+})
 #
 ###########################################################################################
 ############################## Logging Info ###############################################

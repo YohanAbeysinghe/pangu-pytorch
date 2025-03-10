@@ -310,7 +310,7 @@ if local_rank == 0:
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
+peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
 
 peft_model = train(
     peft_model,

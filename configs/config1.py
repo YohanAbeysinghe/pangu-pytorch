@@ -12,8 +12,8 @@ __C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
-__C.GLOBAL.MODEL = 'pm25' #'original'
-__C.GLOBAL.MENA_crop = True
+__C.GLOBAL.MODEL = 'original' #'original'
+__C.GLOBAL.MENA_crop = False
 
 for dirs in ['/scratch/project_462000803/akhtar/climate_project/pangu-pytorch']:
     if os.path.exists(dirs):
@@ -39,7 +39,7 @@ __C.PG.TRAIN.WEIGHT_DECAY = 3e-6
 __C.PG.TRAIN.START_TIME =  '20030101'
 __C.PG.TRAIN.END_TIME = '20181231'
 __C.PG.TRAIN.FREQUENCY = '12h'
-__C.PG.TRAIN.BATCH_SIZE = 4
+__C.PG.TRAIN.BATCH_SIZE = 1
 __C.PG.TRAIN.UPPER_WEIGHTS = [3.00, 0.60, 1.50, 0.77, 0.54]
 __C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00]
 __C.PG.TRAIN.SAVE_INTERVAL = 1
@@ -48,7 +48,7 @@ __C.PG.VAL = edict()
 __C.PG.VAL.START_TIME = '20190101'
 __C.PG.VAL.END_TIME = '20190131'
 __C.PG.VAL.FREQUENCY = '12h'
-__C.PG.VAL.BATCH_SIZE = 4
+__C.PG.VAL.BATCH_SIZE = 1
 __C.PG.VAL.INTERVAL = 1
 
 
