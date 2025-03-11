@@ -94,15 +94,15 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             loss = weighted_upper_loss + weighted_surface_loss * 0.25
 
             # #Accounting for NaN losses.
-            # if torch.isnan(loss) or torch.isinf(loss):
-            #     print(f"Loss is NaN or Inf at iteration {id}. Skipping this iteration.")
-            #     continue  # Skip this batch and move to the next one
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"Loss is NaN or Inf at iteration {id}. Skipping this iteration.")
+                continue  # Skip this batch and move to the next one
 
             loss.backward()
             optimizer.step()
 
             # Gradient Clipping
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             epoch_loss += loss.item()
 
@@ -119,6 +119,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
                 wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
                 wandb.log({"train_loss": loss.item()})
+                # wandb.log({"GPU Memory (MB)": utils.get_gpu_memory()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
             torch.cuda.empty_cache()
