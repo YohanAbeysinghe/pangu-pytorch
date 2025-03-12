@@ -1,243 +1,75 @@
-import xarray as xr
-from datetime import datetime, timedelta
-import pandas as pd
-import numpy as np
 import sys
-
-sys.path.append("/scratch/project_462000803/akhtar/climate_project/pangu-pytorch")
-from typing import Tuple, List
-import torch
-import random
-from torch.utils import data
-from torchvision import transforms as T
+from .ordered_easydict import OrderedEasyDict as edict
+import numpy as np
 import os
-import time
-from torch.nn.modules.module import _addindent
-import matplotlib.pyplot as plt
-import logging
-import subprocess
+import torch
+
+__C = edict()
+cfg = __C
+
+__C.GLOBAL = edict()
+__C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+__C.GLOBAL.BATCH_SZIE = 1 # @Yohan
+__C.GLOBAL.SEED =99
+__C.GLOBAL.NUM_THREADS = 2
+__C.GLOBAL.MODEL = 'pm25'
+__C.GLOBAL.MENA_crop = True
+
+for dirs in ['/scratch/project_462000803/akhtar/climate_project/pangu-pytorch']:
+    if os.path.exists(dirs):
+        __C.GLOBAL.PATH = dirs
+assert __C.GLOBAL.PATH is not None
+
+__C.PG_INPUT_PATH = '/scratch/project_462000803/akhtar/climate_project/data/pangu_data'
+assert __C.PG_INPUT_PATH is not None
+
+__C.PG_OUT_PATH = os.path.join('/scratch/project_462000803/akhtar/climate_project/data/pangu_data/results/cropped')
+assert __C.PG_OUT_PATH is not None
+
+__C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
+__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m','pm2p5']
+__C.ERA5_UPPER_VARIABLES = ['z','q','t','u','v']
+
+__C.PG = edict()
+__C.PG.HORIZON = 24
+__C.PG.TRAIN = edict()
+__C.PG.TRAIN.EPOCHS = 1
+__C.PG.TRAIN.LR = 5e-6 #5e-4
+__C.PG.TRAIN.WEIGHT_DECAY = 3e-7 #3e-6
+__C.PG.TRAIN.START_TIME =  '20180101' #'20030101'
+__C.PG.TRAIN.END_TIME = '20181231'
+__C.PG.TRAIN.FREQUENCY = '12h'
+__C.PG.TRAIN.BATCH_SIZE = 4
+__C.PG.TRAIN.UPPER_WEIGHTS = [3.00, 0.60, 1.50, 0.77, 0.54]
+__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00, 1.20]
+__C.PG.TRAIN.SAVE_INTERVAL = 1
+__C.PG.TRAIN.Low_Rank = 8
 
 
-def logger_info(logger_name, log_path='default_logger.log'):
-    ''' set up logger
-    '''
-    log = logging.getLogger(logger_name)
-    if log.hasHandlers():
-        print('LogHandlers exist!')
-    else:
-        print('LogHandlers setup!')
-        level = logging.INFO
-        formatter = logging.Formatter('%(asctime)s.%(msecs)03d : %(message)s', datefmt='%y-%m-%d %H:%M:%S')
-        fh = logging.FileHandler(log_path, mode='a')
-        fh.setFormatter(formatter)
-        log.setLevel(level)
-        log.addHandler(fh)
-        # print(len(log.handlers))
-
-        sh = logging.StreamHandler()
-        sh.setFormatter(formatter)
-        log.addHandler(sh)
+__C.PG.VAL = edict()
+__C.PG.VAL.START_TIME = '20230101'
+__C.PG.VAL.END_TIME = '20230131'
+__C.PG.VAL.FREQUENCY = '12h'
+__C.PG.VAL.BATCH_SIZE = 4
+__C.PG.VAL.INTERVAL = 1
 
 
-'''
-# --------------------------------------------
-# print to file and std_out simultaneously
-# --------------------------------------------
-'''
+__C.PG.TEST = edict()
+__C.PG.TEST.START_TIME = '20230201'
+__C.PG.TEST.END_TIME = '20230228'
+__C.PG.TEST.FREQUENCY = '72h'
+__C.PG.TEST.BATCH_SIZE = 1
 
-
-class logger_print(object):
-    def __init__(self, log_path="default.log"):
-        self.terminal = sys.stdout
-        self.log = open(log_path, 'a')
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)  # write the message
-
-    def flush(self):
-        pass
-
-
-def visualize(output, target, input, var, z, step, path, cfg):
-    variables = cfg.ERA5_UPPER_VARIABLES
-    var = variables.index(var)
-    fig = plt.figure(figsize=(20, 2))
-    
-    # Ensure all inputs are NumPy arrays
-    # Compute vmin and vmax across all relevant data for consistent color scaling
-    output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
-    target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
-    input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
-    vmin = input[var, z, :, :].min()
-    vmax = input[var, z, :, :].max()
-
-    ax1 = fig.add_subplot(151)
-    plot1 = ax1.imshow(input[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
-    ax1.title.set_text('input')
-
-    if cfg.GLOBAL.MENA_crop:
-        # New subplot for the sliced region of 'input'
-        ax2 = fig.add_subplot(152)
-        plot2 = ax2.imshow(input[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
-        plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
-        ax2.title.set_text('input_slice')
-
-    ax3 = fig.add_subplot(153)
-    plot3 = ax3.imshow(target[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
-    ax3.title.set_text('gt')
-
-    ax4 = fig.add_subplot(154)
-    plot4 = ax4.imshow(output[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
-    ax4.title.set_text('pred')
-
-    ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
-    plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
-    ax5.title.set_text('bias')
-
-    plt.tight_layout()
-    plt.savefig(fname=os.path.join(path, '{}_{}_Z{}'.format(step, variables[var], z)))
-    plt.close(fig)
-
-
-def visualize_surface(output, target, input, var, step, path, cfg):
-    variables = cfg.ERA5_SURFACE_VARIABLES
-    var = variables.index(var)
-    fig = plt.figure(figsize=(20, 2))
-
-    # Ensure all inputs are NumPy arrays
-    # Compute vmin and vmax across all relevant data for consistent color scaling
-    output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
-    target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
-    input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
-    # Use percentiles for robust color scaling, which ignores extreme outliers
-    vmin = np.percentile(input[var, :, :], 0)
-    vmax = np.percentile(input[var, :, :], 80)
-
-    ax1 = fig.add_subplot(151)
-    plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
-    ax1.title.set_text('input')
-
-    if cfg.GLOBAL.MENA_crop:
-        # New subplot for the sliced region of 'input'
-        ax2 = fig.add_subplot(152)
-        plot2 = ax2.imshow(input[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
-        plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
-        ax2.title.set_text('input_slice')
-
-    ax3 = fig.add_subplot(153)
-    plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
-    ax3.title.set_text('gt')
-
-    ax4 = fig.add_subplot(154)
-    plot4 = ax4.imshow(output[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
-    ax4.title.set_text('pred')
-
-    ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
-    plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
-    ax5.title.set_text('bias')
-
-    plt.tight_layout()
-    plt.savefig(fname=os.path.join(path, '{}_{}'.format(step, variables[var])))
-    plt.close(fig)
-
-
-def mkdir(path):
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
-
-
-def mkdirs(paths):
-    if isinstance(paths, str):
-        mkdir(paths)
-    else:
-        for path in paths:
-            mkdir(path)
-
-
-def torch_summarize(model, show_weights=False, show_parameters=False, show_gradients=False):
-    """Summarizes torch model by showing trainable parameters and weights."""
-    tmpstr = model.__class__.__name__ + ' (\n'
-    total_params = sum([np.prod(p.size()) for p in filter(lambda p: p.requires_grad, model.parameters())])
-    tmpstr += ', total parameters={}'.format(total_params)
-    for key, module in model._modules.items():
-        # if it contains layers let call it recursively to get params and weights
-        if type(module) in [
-            torch.nn.modules.container.Container,
-            torch.nn.modules.container.Sequential
-        ]:
-            modstr = torch_summarize(module)
-        else:
-            modstr = module.__repr__()
-        modstr = _addindent(modstr, 2)
-
-        params = sum([np.prod(p.size()) for p in filter(lambda p: p.requires_grad, module.parameters())])
-        weights = tuple([tuple(p.size()) for p in filter(lambda p: p.requires_grad, module.parameters())])
-        grads = tuple([str(p.requires_grad) for p in filter(lambda p: p.requires_grad, module.parameters())])
-
-        tmpstr += '  (' + key + '): ' + modstr
-        if show_weights:
-            tmpstr += ', weights={}'.format(weights)
-        if show_parameters:
-            tmpstr += ', parameters={}'.format(params)
-        if show_gradients:
-            tmpstr += ', gradients={}'.format(grads)
-        tmpstr += '\n'
-
-    tmpstr = tmpstr + ')'
-    return tmpstr
-
-
-def save_errorScores(csv_path, z, q, t, u, v, surface, error, cfg):
-    score_upper_z = pd.DataFrame.from_dict(z,
-                                orient='index',
-                                columns=cfg.ERA5_UPPER_LEVELS)
-    score_upper_q = pd.DataFrame.from_dict(q,
-                                orient='index',
-                                columns=cfg.ERA5_UPPER_LEVELS)
-    score_upper_t = pd.DataFrame.from_dict(t,
-                                orient='index',
-                                columns=cfg.ERA5_UPPER_LEVELS)
-    score_upper_u = pd.DataFrame.from_dict(u,
-                                orient='index',
-                                columns=cfg.ERA5_UPPER_LEVELS)
-    score_upper_v = pd.DataFrame.from_dict(v,
-                                orient='index',
-                                columns=cfg.ERA5_UPPER_LEVELS)
-    score_surface = pd.DataFrame.from_dict(surface,
-                                orient='index',
-                                columns=cfg.ERA5_SURFACE_VARIABLES)
-
-    score_upper_z.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_z'))
-    score_upper_q.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_q'))
-    score_upper_t.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_t'))
-    score_upper_u.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_u'))
-    score_upper_v.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_v'))
-    score_surface.to_csv("{}/{}.csv".format(csv_path, f'{error}_surface'))
+__C.PG.BENCHMARK = edict()
+__C.PG.BENCHMARK.PRETRAIN_24 = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model/pangu_weather_24.onnx')
+__C.PG.BENCHMARK.PRETRAIN_6 = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model/pangu_weather_6.onnx')
+__C.PG.BENCHMARK.PRETRAIN_3 = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model/pangu_weather_3.onnx')
+__C.PG.BENCHMARK.PRETRAIN_1 = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model/pangu_weather_1.onnx')
+__C.PG.BENCHMARK.PRETRAIN_24_fp16 = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model_fp16/pangu_weather_24_fp16.onnx')
+__C.PG.BENCHMARK.PRETRAIN_24_torch = os.path.join(__C.PG_INPUT_PATH , 'pretrained_model/pangu_weather_24_torch.pth')
+  
+__C.MODEL = edict()
 
 
 
-def get_gpu_memory():
-    result = subprocess.run(["rocm-smi", "--showmeminfo", "vram"], capture_output=True, text=True)
-    lines = result.stdout.split("\n")
-    vram_usage = []
-    for line in lines:
-        if "Used" in line:
-            used_memory = int(line.split(":")[-1].strip().split()[0])  # Extract value in MB
-            vram_usage.append(used_memory)
-    return vram_usage
-
-if __name__ == "__main__":
-
-    """
-    """
-
-
+# __C.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
