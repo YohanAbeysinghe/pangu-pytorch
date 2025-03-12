@@ -173,9 +173,12 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                     input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
 
                     # Inference
-                    output_val, output_surface_val = model(input_val, input_surface_val,
+                    output_val, output_surface_val = model(input_val,input_surface_val,
                                                            aux_constants['weather_statistics'],
-                                                           aux_constants['constant_maps'], aux_constants['const_h'])
+                                                           aux_constants['constant_maps'],
+                                                           aux_constants['const_h']
+                                                           )
+
                     # Noralize the gt to make the loss compariable
                     target_val, target_surface_val = utils_data.normData(target_val,
                                                                          target_surface_val,
