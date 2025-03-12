@@ -224,17 +224,6 @@ def save_errorScores(csv_path, z, q, t, u, v, surface, error, cfg):
     score_surface.to_csv("{}/{}.csv".format(csv_path, f'{error}_surface'))
 
 
-
-def get_gpu_memory():
-    result = subprocess.run(["rocm-smi", "--showmeminfo", "vram"], capture_output=True, text=True)
-    lines = result.stdout.split("\n")
-    vram_usage = []
-    for line in lines:
-        if "Used" in line:
-            used_memory = int(line.split(":")[-1].strip().split()[0])  # Extract value in MB
-            vram_usage.append(used_memory)
-    return vram_usage
-
 if __name__ == "__main__":
 
     """

@@ -119,7 +119,6 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                 wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
                 wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
                 wandb.log({"train_loss": loss.item()})
-                # wandb.log({"GPU Memory (MB)": utils.get_gpu_memory()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
             torch.cuda.empty_cache()

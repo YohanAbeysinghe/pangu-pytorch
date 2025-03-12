@@ -342,7 +342,6 @@ def computeStatistics(train_loader):
 def loadConstMask_h(filepath=None, device="cpu", cfg=None):
     mask_h = np.load(os.path.join(filepath, "Constant_17_output_0.npy")).astype(np.float32)
     mask_h = torch.from_numpy(mask_h)
-    print(mask_h)
     return mask_h.to(device)
 
 def loadVariableWeights(device="cpu", cfg=None):
