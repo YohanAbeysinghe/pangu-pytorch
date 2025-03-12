@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-sys.path.append("/home/yohan.abeysinghe/pangu-pytorch")
+sys.path.append("/scratch/project_462000803/akhtar/climate_project/pangu-pytorch")
 from typing import Tuple, List
 import torch
 import random
@@ -15,6 +15,7 @@ import time
 from torch.nn.modules.module import _addindent
 import matplotlib.pyplot as plt
 import logging
+import subprocess
 
 
 def logger_info(logger_name, log_path='default_logger.log'):
@@ -221,6 +222,18 @@ def save_errorScores(csv_path, z, q, t, u, v, surface, error, cfg):
     score_upper_u.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_u'))
     score_upper_v.to_csv("{}/{}.csv".format(csv_path, f'{error}_upper_v'))
     score_surface.to_csv("{}/{}.csv".format(csv_path, f'{error}_surface'))
+
+
+
+def get_gpu_memory():
+    result = subprocess.run(["rocm-smi", "--showmeminfo", "vram"], capture_output=True, text=True)
+    lines = result.stdout.split("\n")
+    vram_usage = []
+    for line in lines:
+        if "Used" in line:
+            used_memory = int(line.split(":")[-1].strip().split()[0])  # Extract value in MB
+            vram_usage.append(used_memory)
+    return vram_usage
 
 if __name__ == "__main__":
 

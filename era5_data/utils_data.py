@@ -76,7 +76,7 @@ class NetCDFDataset(data.Dataset):
         self.training = training
         self.validation = validation
         self.data_transform = data_transform
-        self.model_type = cfg.GLOBAL.MODEL
+        self.cfg = cfg
 
         if training:
             self.keys = list(pd.date_range(start=startDate, end=endDate, freq=freq))
@@ -117,10 +117,7 @@ class NetCDFDataset(data.Dataset):
         upper = np.concatenate((upper_z[np.newaxis, ...], upper_q[np.newaxis, ...], upper_t[np.newaxis, ...],
                                 upper_u[np.newaxis, ...], upper_v[np.newaxis, ...]), axis=0)
         
-        if self.model_type == "original":
-            assert upper.shape == (5, 13, 721, 1440)
-        if self.model_type == "cropped":
-            assert upper.shape == (5,13,209,305) #@Yohan (5, 13, 721, 1440) ---> (5,13,209,305)
+        assert upper.shape == (5, 13, 721, 1440)
 
         # levels in descending order, require new memery space
         upper = upper[:, ::-1, :, :].copy()
@@ -129,13 +126,19 @@ class NetCDFDataset(data.Dataset):
         surface_u10 = dataset_surface['u10'].values.astype(np.float32)
         surface_v10 = dataset_surface['v10'].values.astype(np.float32)
         surface_t2m = dataset_surface['t2m'].values.astype(np.float32)
-        surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
+
+        if self.cfg.GLOBAL.MODEL == "original":
+            surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
                                   surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...]), axis=0)
-        
-        if self.model_type == "original":
             assert surface.shape == (4, 721, 1440)
-        if self.model_type == "cropped":
-            assert surface.shape == (4, 209,305) #@Yohan (4, 721, 1440) ---> (4,209,305)
+
+        if self.cfg.GLOBAL.MODEL == "pm25":
+            surface_pm2p5 = dataset_surface['pm2p5'].values.astype(np.float32)
+            surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
+                                    surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...],
+                                    surface_pm2p5[np.newaxis, ...]),
+                                    axis=0)
+            assert surface.shape == (5, 721, 1440)
 
         return upper, surface
 
@@ -166,6 +169,11 @@ class NetCDFDataset(data.Dataset):
         # print(start_time_str[0:6])
         input_surface_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'surface', 'surface_{}.nc'.format(start_time_str[0:6])))  # 201501
+        
+        # Check if time exists in dataset before selecting
+        if start_time not in input_surface_dataset['time'].values:
+            return None
+        
         if 'expver' in input_surface_dataset.keys():
             input_surface_dataset = input_surface_dataset.sel(time=start_time, expver=5)
         else:
@@ -174,6 +182,11 @@ class NetCDFDataset(data.Dataset):
         # Prepare the input_upper dataset
         input_upper_dataset = xr.open_dataset(
             os.path.join(self.nc_path, 'upper', 'upper_{}.nc'.format(start_time_str[0:8])))
+    
+        # Check if time exists in dataset before selecting
+        if start_time not in input_upper_dataset['time'].values:
+            return None
+        
         if 'expver' in input_upper_dataset.keys():
             input_upper_dataset = input_upper_dataset.sel(time=start_time, expver=5)
         else:
@@ -209,7 +222,10 @@ class NetCDFDataset(data.Dataset):
         """Return input frames, target frames, and its corresponding time steps."""
         if self.training:
             iii = self.keys[index]
-            input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            try:
+                input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            except:
+                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
 
             if self.data_transform is not None:
                 input = self.data_transform(input)
@@ -217,7 +233,10 @@ class NetCDFDataset(data.Dataset):
 
         else:
             iii = self.keys[index]
-            input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            try:
+                input, input_surface, target, target_surface, periods = self.LoadData(iii)
+            except:
+                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
 
         return input, input_surface, target, target_surface, periods
 
@@ -228,16 +247,27 @@ class NetCDFDataset(data.Dataset):
         return self.__class__.__name__
 
 
-def weatherStatistics_output(filepath=None, device="cpu"):
+def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
     """
     :return:1, 5, 13, 1, 1
     """
-    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-    surface_mean = torch.from_numpy(surface_mean)
-    surface_std = torch.from_numpy(surface_std)
-    surface_mean = surface_mean.view(1, 4, 1, 1)
-    surface_std = surface_std.view(1, 4, 1, 1)
+    if cfg.GLOBAL.MODEL == "original":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+        surface_mean = surface_mean.view(1, 4, 1, 1)
+        surface_std = surface_std.view(1, 4, 1, 1)
+
+    if cfg.GLOBAL.MODEL == "pm25":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) # @Yohan. Adding a new mean ndvi.
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) # @Yohan. Adding a new std for ndvi.
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+        surface_mean = surface_mean.view(1, 5, 1, 1) # @Yohan
+        surface_std = surface_std.view(1, 5, 1, 1) # @Yohan
 
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)  # (13,1,1,5)
     upper_mean = upper_mean[::-1, :, :, :].copy()
@@ -253,14 +283,23 @@ def weatherStatistics_output(filepath=None, device="cpu"):
         device)
 
 
-def weatherStatistics_input(filepath=None, device="cpu"):
+def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
     """
     :return:13, 1, 1, 5
     """
-    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-    surface_mean = torch.from_numpy(surface_mean)
-    surface_std = torch.from_numpy(surface_std)
+    if cfg.GLOBAL.MODEL == "original":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+
+    if cfg.GLOBAL.MODEL == "pm25":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) #Adding a new mean ndvi.
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) #Adding a new std for ndvi.
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
 
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)
     upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
@@ -283,8 +322,6 @@ def LoadConstantMask(filepath=None, device="cpu"):
 
 def LoadConstantMask3(filepath=None, device="cpu", cfg=None):
     mask = np.load(os.path.join(filepath, "constantMaks3.npy")).astype(np.float32)
-    if cfg.GLOBAL.MODEL == "cropped":
-        mask = mask[:, :, 179:391, 0:305] # # @Yohan [1,3,724,1440] ---> [1,3,212,305]
     mask = torch.from_numpy(mask)
     return mask.to(device)
 
@@ -305,8 +342,6 @@ def computeStatistics(train_loader):
 def loadConstMask_h(filepath=None, device="cpu", cfg=None):
     mask_h = np.load(os.path.join(filepath, "Constant_17_output_0.npy")).astype(np.float32)
     mask_h = torch.from_numpy(mask_h)
-    if cfg.GLOBAL.MODEL == "cropped":
-        mask_h = mask_h[:, :, :, :, 180:389, 0:305] #@Yohan. cropped. [1,1,1,13,209,305]
     return mask_h.to(device)
 
 def loadVariableWeights(device="cpu", cfg=None):
@@ -316,8 +351,8 @@ def loadVariableWeights(device="cpu", cfg=None):
 
 def loadAllConstants(device, cfg=None):
     constants = dict()
-    constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)  # height has inversed shape, order is reversed in model
-    constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device)
+    constants['weather_statistics'] = weatherStatistics_input(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg)  # height has inversed shape, order is reversed in model
+    constants['weather_statistics_last'] = weatherStatistics_output(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg)
     # constants['constant_maps'] = LoadConstantMask(device=device)
     constants['constant_maps'] = LoadConstantMask3(filepath=os.path.join(cfg.PG_INPUT_PATH, 'aux_data'), device=device, cfg=cfg) #not able to be equal
     constants['variable_weights'] = loadVariableWeights(device=device, cfg=cfg)

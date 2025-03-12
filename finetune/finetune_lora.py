@@ -125,8 +125,37 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 module_copy = copy.deepcopy(model) # For later comparisons
 
 checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
-model.load_state_dict(checkpoint['model'])
-# model.load_state_dict(checkpoint['model'], strict=False)
+state_dict = checkpoint['model']
+#
+###########################################################################################
+################### Editing Checkpoint to Get New Variables ###############################
+###########################################################################################
+#
+if cfg.GLOBAL.MODEL == 'pm25':
+    # Learning rate for new variables.
+    model_state_dict = model.state_dict()
+
+    # Modify input layer for dimension matching and loading the existing weights
+    # for first 112 channels. Rest is initialized randomly.
+    new_input_weight = torch.zeros((192, 128, 1))
+    new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
+    state_dict['_input_layer.conv_surface.weight'] = new_input_weight
+
+    # Modify output layer for dimension matching and loading the existing weights
+    # for first 64 channels. Rest is initialized randomly.
+    new_output_weight = torch.zeros((80, 384, 1))
+    new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_output_weight[64:, :, :])
+    state_dict['_output_layer.conv_surface.weight'] = new_output_weight
+
+    # Modify output layer bias. Loading first 64 biases.
+    new_output_bias = torch.zeros(80)
+    new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
+    state_dict['_output_layer.conv_surface.bias'] = new_output_bias
+
+# Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
+model.load_state_dict(state_dict, strict=False)
 #
 ###########################################################################################
 #####################################  PEFT  ##############################################
@@ -146,18 +175,38 @@ config = LoraConfig(
     lora_alpha=16,
     target_modules=target_modules,
     lora_dropout=0.1,
-    modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+    # modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
 )
 
 peft_model = get_peft_model(model, config)
 
-optimizer = torch.optim.Adam(peft_model.parameters(),
-                             lr=cfg.PG.TRAIN.LR,
-                             weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY)
+optimizer = torch.optim.Adam(
+    peft_model.parameters(),
+    lr=cfg.PG.TRAIN.LR,
+    weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
+    )
 
-lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                                    milestones=[25, 50],
-                                                    gamma=0.5)
+lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    optimizer,
+    milestones=[25, 50],
+    gamma=0.5
+    )
+
+if cfg.GLOBAL.MODEL == 'original':
+    #Fully finetune
+    for param in model.parameters():
+        param.requires_grad = True
+
+if cfg.GLOBAL.MODEL == 'pm25':
+    # Fine-tuning layers (MENA scaling)
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Set requires_grad for edited layers
+    for param in model._input_layer.conv_surface.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
 
 start_epoch = 1
 #
@@ -165,24 +214,24 @@ start_epoch = 1
 ###################################  Lora Logistics  ######################################
 ###########################################################################################
 #
-for name, param in peft_model.base_model.named_parameters():
-    if "lora" not in name:
-        continue
+# for name, param in peft_model.base_model.named_parameters():
+#     if "lora" not in name:
+#         continue
 
-    print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
+#     print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
 
-params_before = dict(module_copy.named_parameters())
-for name, param in peft_model.base_model.named_parameters():
-    if "lora" in name:
-        continue
+# params_before = dict(module_copy.named_parameters())
+# for name, param in peft_model.base_model.named_parameters():
+#     if "lora" in name:
+#         continue
 
-    name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
-        "modules_to_save.default.", "")
-    param_before = params_before[name_before]
-    if torch.allclose(param, param_before):
-        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
-    else:
-        print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
+#     name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
+#         "modules_to_save.default.", "")
+#     param_before = params_before[name_before]
+#     if torch.allclose(param, param_before):
+#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
+#     else:
+#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
 #
 ###########################################################################################
 ############################## Logging Info ###############################################
@@ -198,33 +247,37 @@ print("weather statistics are loaded!")
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-peft_model = train(peft_model,
-                   train_loader=train_dataloader,
-                   val_loader=val_dataloader,
-                   optimizer=optimizer,
-                   lr_scheduler=lr_scheduler,
-                   res_path = output_path,
-                   device=device,
-                   writer=writer, 
-                   logger = logger,
-                   start_epoch=start_epoch,
-                   cfg = cfg)
-#
+peft_model = train(
+    peft_model,
+    train_loader=train_dataloader,
+    val_loader=val_dataloader,
+    optimizer=optimizer,
+    lr_scheduler=lr_scheduler,
+    res_path = output_path,
+    device=device,
+    writer=writer, 
+    logger = logger,
+    start_epoch=start_epoch,
+    cfg = cfg
+    )
 ###########################################################################################
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
-                        map_location='cuda:0',
-                        weights_only=False)
+best_model = torch.load(
+    os.path.join(output_path,"models/best_model.pth"),
+    map_location='cuda:0',
+    weights_only=False
+    )
 
 logger.info("Begin testing...")
 
 test(test_loader=test_dataloader,
-     model=best_model,
-     device=device,
-     res_path=output_path,
-     cfg = cfg)
+    model=best_model,
+    device=device,
+    res_path=output_path,
+    cfg = cfg
+    )
 #
 ###########################################################################################
 ###########################################################################################
