@@ -9,7 +9,7 @@ import wandb
 from era5_data import score
 from era5_data import utils, utils_data
 
-def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, device, writer, logger, start_epoch,
+def train(model, train_loader, val_loader, optimizer, res_path, device, writer, logger, start_epoch,
           rank=0, cfg=None):
     '''Training code'''
     # Prepare for the optimizer and scheduler
@@ -105,7 +105,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
 
             epoch_loss += loss.item()
 
-            # if rank == 0 and id%10 == 0:
+            if rank == 0 and id%10 == 0:
             #     step = num_iterations_per_epoch*(i-1) + id
             #     wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
             #     wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
@@ -119,7 +119,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
             #     wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
             #     wandb.log({"train_loss": loss.item()})
             #     # wandb.log({"GPU Memory (MB)": utils.get_gpu_memory()})
-            #     logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
+                logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
             torch.cuda.empty_cache()
 
@@ -128,10 +128,9 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
         epoch_loss /= len(train_loader)
         if rank == 0:
             logger.info("Epoch {} : {:.3f}".format(i, epoch_loss))
-            wandb.log({"epoch_loss": epoch_loss})
 
         loss_list.append(epoch_loss)
-        lr_scheduler.step()
+        # lr_scheduler.step()
 
         model_save_path = os.path.join(res_path, 'models')
         utils.mkdirs(model_save_path)
@@ -140,10 +139,10 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
         if i % cfg.PG.TRAIN.SAVE_INTERVAL == 0:
             save_file = {"model": model.state_dict(),
                          "optimizer": optimizer.state_dict(),
-                         "lr_scheduler": lr_scheduler.state_dict(),
+                        #  "lr_scheduler": lr_scheduler.state_dict(),
                          "epoch": i}
             torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
-            torch.save(model.module.state_dict(), os.path.join(model_save_path, 'train_model_nonddp_{}.pth'.format(i)))
+            torch.save(model.state_dict(), os.path.join(model_save_path, 'train_model_nonddp_{}.pth'.format(i)))
             # torch.save(model, os.path.join(model_save_path,'train_{}.pth'.format(i)))
 
         # Begin to validate
@@ -242,7 +241,7 @@ def train(model, train_loader, val_loader, optimizer, lr_scheduler, res_path, de
                         best_model = copy.deepcopy(model)
                         # Save the best model
                         torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
-                        torch.save(best_model.module.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
+                        torch.save(best_model.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
                         logger.info(f"current best model is saved at {i} epoch.")
                         epochs_since_last_improvement = 0
 
@@ -320,7 +319,7 @@ def test(test_loader, model, device, res_path, cfg):
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
                                 target_surface_test.detach().cpu().squeeze(),
                                 input_surface_test.detach().cpu().squeeze(),
-                                var='pm2p5',
+                                var='t2m',
                                 step=target_time,
                                 path=png_path,
                                 cfg=cfg

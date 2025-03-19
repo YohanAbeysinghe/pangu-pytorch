@@ -121,6 +121,7 @@ class NetCDFDataset(data.Dataset):
 
         # levels in descending order, require new memery space
         upper = upper[:, ::-1, :, :].copy()
+        
 
         surface_mslp = dataset_surface['msl'].values.astype(np.float32)  # (721,1440)
         surface_u10 = dataset_surface['u10'].values.astype(np.float32)
@@ -222,10 +223,8 @@ class NetCDFDataset(data.Dataset):
         """Return input frames, target frames, and its corresponding time steps."""
         if self.training:
             iii = self.keys[index]
-            try:
-                input, input_surface, target, target_surface, periods = self.LoadData(iii)
-            except:
-                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
+            input, input_surface, target, target_surface, periods = self.LoadData(iii)
+
 
             if self.data_transform is not None:
                 input = self.data_transform(input)
@@ -233,10 +232,7 @@ class NetCDFDataset(data.Dataset):
 
         else:
             iii = self.keys[index]
-            try:
-                input, input_surface, target, target_surface, periods = self.LoadData(iii)
-            except:
-                return torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1)
+            input, input_surface, target, target_surface, periods = self.LoadData(iii)
 
         return input, input_surface, target, target_surface, periods
 

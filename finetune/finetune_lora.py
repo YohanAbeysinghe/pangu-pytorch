@@ -39,7 +39,7 @@ torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
 ############################## Distributed Training #######################################
 ###########################################################################################
 #
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 #
 ###########################################################################################
@@ -124,7 +124,7 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 
 module_copy = copy.deepcopy(model) # For later comparisons
 
-checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False)
+checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False, map_location='cuda:2')
 state_dict = checkpoint['model']
 #
 ###########################################################################################
@@ -186,11 +186,11 @@ optimizer = torch.optim.Adam(
     weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
     )
 
-lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-    optimizer,
-    milestones=[25, 50],
-    gamma=0.5
-    )
+# lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+#     optimizer,
+#     milestones=[25, 50],
+#     gamma=0.5
+#     )
 
 if cfg.GLOBAL.MODEL == 'original':
     #Fully finetune
@@ -252,7 +252,7 @@ peft_model = train(
     train_loader=train_dataloader,
     val_loader=val_dataloader,
     optimizer=optimizer,
-    lr_scheduler=lr_scheduler,
+    # lr_scheduler=lr_scheduler,
     res_path = output_path,
     device=device,
     writer=writer, 
@@ -266,7 +266,7 @@ peft_model = train(
 #
 best_model = torch.load(
     os.path.join(output_path,"models/best_model.pth"),
-    map_location='cuda:0',
+    map_location='cuda:2',
     weights_only=False
     )
 
