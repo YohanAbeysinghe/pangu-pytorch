@@ -34,6 +34,7 @@ from tensorboardX import SummaryWriter
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
+parser.add_argument('--distri', type=bool, default=False, help='Using multigpu')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -61,23 +62,28 @@ logger = logging.getLogger(logger_name)
 ############################## Distributed Training #######################################
 ###########################################################################################
 #
-def setup_distributed():
-    dist.init_process_group(backend="gloo", timeout=timedelta(minutes=60))
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(local_rank)
-    return local_rank
+if args.distri:
+    def setup_distributed():
+        dist.init_process_group(backend="gloo", timeout=timedelta(minutes=60))
+        local_rank = int(os.environ["LOCAL_RANK"])
+        torch.cuda.set_device(local_rank)
+        return local_rank
 
-def cleanup_distributed():
-    dist.destroy_process_group()
+    def cleanup_distributed():
+        dist.destroy_process_group()
 
-local_rank = setup_distributed()
-device = torch.device(f"cuda:{local_rank}")
-logger.info(f"Using device: {device}")
+    local_rank = setup_distributed()
+    device = torch.device(f"cuda:{local_rank}")
+    logger.info(f"Using device: {device}")
 
-num_gpus = torch.cuda.device_count()
-# num_gpus = 1
-if local_rank == 0:
-    logger.info(f"Number of GPUs available: {num_gpus}")
+    num_gpus = torch.cuda.device_count()
+    # num_gpus = 1
+    if local_rank == 0:
+        logger.info(f"Number of GPUs available: {num_gpus}")
+else:
+    local_rank =  0
+    num_gpus = 1
+    device = torch.device(f"cuda:{local_rank}")
 #
 ###########################################################################################
 ################################### Data Loading ##########################################
@@ -97,20 +103,28 @@ train_dataset = utils_data.NetCDFDataset(
     cfg=cfg
     )
 
-train_sampler = DistributedSampler(
-    train_dataset,
-    shuffle=True,
-    drop_last=True
-    )
+if args.distri:
+    train_sampler = DistributedSampler(
+        train_dataset,
+        shuffle=True,
+        drop_last=True
+        )
 
-train_dataloader = data.DataLoader(
-    dataset=train_dataset,
-    batch_size=cfg.PG.TRAIN.BATCH_SIZE//num_gpus,
-    num_workers=0,
-    pin_memory=False,
-    sampler=train_sampler
-    )
-
+    train_dataloader = data.DataLoader(
+        dataset=train_dataset,
+        batch_size=cfg.PG.TRAIN.BATCH_SIZE//num_gpus,
+        num_workers=0,
+        pin_memory=False,
+        sampler=train_sampler
+        )
+    
+else:
+    train_dataloader = data.DataLoader(dataset=train_dataset,
+                                    batch_size=cfg.PG.TRAIN.BATCH_SIZE,
+                                    drop_last=True,
+                                    shuffle=True,
+                                    num_workers=0,
+                                    pin_memory=False)
 
 val_dataset = utils_data.NetCDFDataset(
     nc_path=PATH,
@@ -124,19 +138,28 @@ val_dataset = utils_data.NetCDFDataset(
     cfg=cfg
     )
 
-val_sampler = DistributedSampler(
-    val_dataset,
-    shuffle=True,
-    drop_last=True
-    )
+if args.distri:
+    val_sampler = DistributedSampler(
+        val_dataset,
+        shuffle=True,
+        drop_last=True
+        )
 
-val_dataloader = data.DataLoader(
-    dataset=val_dataset,
-    batch_size=cfg.PG.VAL.BATCH_SIZE//num_gpus,
-    num_workers=0,
-    pin_memory=False,
-    sampler=val_sampler
-    )
+    val_dataloader = data.DataLoader(
+        dataset=val_dataset,
+        batch_size=cfg.PG.VAL.BATCH_SIZE//num_gpus,
+        num_workers=0,
+        pin_memory=False,
+        sampler=val_sampler
+        )
+
+else:
+    val_dataloader = data.DataLoader(dataset=val_dataset,
+                                    batch_size=cfg.PG.VAL.BATCH_SIZE,
+                                    drop_last=True,
+                                    shuffle=False,
+                                    num_workers=0,
+                                    pin_memory=False)
 
 test_dataset = utils_data.NetCDFDataset(
     nc_path=PATH,
@@ -223,11 +246,47 @@ config = LoraConfig(
 
 peft_model = get_peft_model(model, config)
 
+
+if cfg.GLOBAL.MODEL == 'original':
+    #Fully finetune
+    for param in peft_model.parameters():
+        param.requires_grad = True
+    
+
+if cfg.GLOBAL.MODEL == 'pm25':
+    # Fine-tuning layers (MENA scaling)
+    # breakpoint()
+    # for name,param in peft_model.named_parameters():
+    #     print(name)
+    #     if name in target_modules:
+    #         # print("I am here buhababa")
+    #         param.requires_grad=True
+    #     else:
+    #         print("I am here bahabhd")
+    #         param.requires_grad = False
+    # exit()
+
+    # for name,param 
+    # for layers in target_modules:
+    #     breakpoint()
+    #     for param in layers.parameters():
+    #         param.requires_grad = True
+
+    # Set requires_grad for edited layers
+    for param in peft_model._input_layer.conv_surface.parameters():
+        print("I am here")
+        
+        param.requires_grad = True
+    for param in peft_model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
+
+
+
 optimizer = torch.optim.Adam(
     peft_model.parameters(),
     lr=cfg.PG.TRAIN.LR,
-    weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
-    )
+    # weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
+)
 
 lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
     optimizer,
@@ -235,21 +294,6 @@ lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
     gamma=0.5
     )
 
-if cfg.GLOBAL.MODEL == 'original':
-    #Fully finetune
-    for param in model.parameters():
-        param.requires_grad = True
-
-if cfg.GLOBAL.MODEL == 'pm25':
-    # Fine-tuning layers (MENA scaling)
-    for param in model.parameters():
-        param.requires_grad = False
-
-    # Set requires_grad for edited layers
-    for param in model._input_layer.conv_surface.parameters():
-        param.requires_grad = True
-    for param in model._output_layer.conv_surface.parameters():
-        param.requires_grad = True
 
 start_epoch = 1
 #
@@ -310,22 +354,24 @@ if local_rank == 0:
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
+if args.distri:
+    peft_model = DDP(peft_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
 
 peft_model = train(
-    peft_model,
-    train_loader=train_dataloader,
-    val_loader=val_dataloader,
-    optimizer=optimizer,
-    lr_scheduler=lr_scheduler,
-    res_path = output_path,
-    device=device,
-    writer=writer, 
-    logger = logger,
-    start_epoch=start_epoch,
-    cfg = cfg,
-    rank=local_rank
-    )
+        peft_model,
+        train_loader=train_dataloader,
+        val_loader=val_dataloader,
+        optimizer=optimizer,
+        lr_scheduler=lr_scheduler,
+        res_path = output_path,
+        device=device,
+        writer=writer, 
+        logger = logger,
+        start_epoch=start_epoch,
+        cfg = cfg,
+        rank=local_rank
+        )
+
 #
 ###########################################################################################
 ################################### Testing  ##############################################
