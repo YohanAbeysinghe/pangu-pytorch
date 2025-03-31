@@ -141,6 +141,20 @@ class NetCDFDataset(data.Dataset):
                                     axis=0)
             assert surface.shape == (5, 721, 1440)
 
+        if self.cfg.GLOBAL.MODEL == "All_pm":
+            surface_pm1 = dataset_surface['pm1'].values.astype(np.float32)
+            surface_pm2p5 = dataset_surface['pm2p5'].values.astype(np.float32)
+            surface_pm10 = dataset_surface['pm10'].values.astype(np.float32)
+            surface = np.concatenate((surface_mslp[np.newaxis, ...],
+                                      surface_u10[np.newaxis, ...],
+                                      surface_v10[np.newaxis, ...],
+                                      surface_t2m[np.newaxis, ...],
+                                      surface_pm1[np.newaxis, ...],
+                                      surface_pm2p5[np.newaxis, ...],
+                                      surface_pm10[np.newaxis, ...]),
+                                      axis=0)
+            assert surface.shape == (7, 721, 1440)
+
         return upper, surface
 
 
@@ -257,13 +271,29 @@ def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
 
     if cfg.GLOBAL.MODEL == "pm25":
         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) # @Yohan. Adding a new mean ndvi.
+        surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) # @Yohan. Adding a new mean pm.
         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) # @Yohan. Adding a new std for ndvi.
+        surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) # @Yohan. Adding a new std for pm.
         surface_mean = torch.from_numpy(surface_mean)
         surface_std = torch.from_numpy(surface_std)
         surface_mean = surface_mean.view(1, 5, 1, 1) # @Yohan
         surface_std = surface_std.view(1, 5, 1, 1) # @Yohan
+
+    if cfg.GLOBAL.MODEL == "All_pm":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(4.245669149582909e-09)) # @Yohan. Adding a new mean pm.
+        surface_mean = np.append(surface_mean, np.float32(1.015188377806453e-08)) 
+        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764e-08)) 
+
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(1.4735645592622859e-08)) # @Yohan. Adding a new std for pm.
+        surface_std = np.append(surface_std, np.float32(2.1210791345538382e-08))
+        surface_std = np.append(surface_std, np.float32(3.24056372846826e-08))
+
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+        surface_mean = surface_mean.view(1, 7, 1, 1) # @Yohan
+        surface_std = surface_std.view(1, 7, 1, 1) # @Yohan
 
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)  # (13,1,1,5)
     upper_mean = upper_mean[::-1, :, :, :].copy()
@@ -294,6 +324,20 @@ def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
         surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) #Adding a new mean ndvi.
         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
         surface_std = np.append(surface_std, np.float32(4.456264335317428e-08)) #Adding a new std for ndvi.
+        surface_mean = torch.from_numpy(surface_mean)
+        surface_std = torch.from_numpy(surface_std)
+
+    if cfg.GLOBAL.MODEL == "All_pm":
+        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+        surface_mean = np.append(surface_mean, np.float32(4.245669149582909e-09)) # @Yohan. Adding a new mean pm.
+        surface_mean = np.append(surface_mean, np.float32(1.015188377806453e-08)) 
+        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764e-08)) 
+
+        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+        surface_std = np.append(surface_std, np.float32(1.4735645592622859e-08)) # @Yohan. Adding a new std for pm.
+        surface_std = np.append(surface_std, np.float32(2.1210791345538382e-08))
+        surface_std = np.append(surface_std, np.float32(3.24056372846826e-08))
+
         surface_mean = torch.from_numpy(surface_mean)
         surface_std = torch.from_numpy(surface_std)
 

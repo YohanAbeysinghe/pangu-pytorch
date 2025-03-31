@@ -229,7 +229,37 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                         output_surface_val.detach().cpu().squeeze(),
                         target_surface_val.detach().cpu().squeeze(),
                         input_surface_val_raw.squeeze(),
-                        var='msl',
+                        var='u10',
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+
+                    utils.visualize_surface(
+                        output_surface_val.detach().cpu().squeeze(),
+                        target_surface_val.detach().cpu().squeeze(),
+                        input_surface_val_raw.squeeze(),
+                        var='pm1',
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+                    
+                    utils.visualize_surface(
+                        output_surface_val.detach().cpu().squeeze(),
+                        target_surface_val.detach().cpu().squeeze(),
+                        input_surface_val_raw.squeeze(),
+                        var='pm25',
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+                    
+                    utils.visualize_surface(
+                        output_surface_val.detach().cpu().squeeze(),
+                        target_surface_val.detach().cpu().squeeze(),
+                        input_surface_val_raw.squeeze(),
+                        var='pm10',
                         step=i,
                         path=png_path,
                         cfg=cfg
@@ -258,6 +288,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
 def test(test_loader, model, device, res_path, cfg):
     # set up empty dics for rmses and anormaly correlation coefficients
+
     rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v = dict(), dict(), dict(), dict(), dict()
     rmse_surface = dict()
 
@@ -315,11 +346,30 @@ def test(test_loader, model, device, res_path, cfg):
                         path=png_path,
                         cfg=cfg
                         )
+        
         #['msl', 'u','v','t2m']
         utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
                                 target_surface_test.detach().cpu().squeeze(),
                                 input_surface_test.detach().cpu().squeeze(),
-                                var='t2m',
+                                var='pm1',
+                                step=target_time,
+                                path=png_path,
+                                cfg=cfg
+                                )
+        
+        utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
+                                target_surface_test.detach().cpu().squeeze(),
+                                input_surface_test.detach().cpu().squeeze(),
+                                var='pm25',
+                                step=target_time,
+                                path=png_path,
+                                cfg=cfg
+                                )
+        
+        utils.visualize_surface(output_surface_test.detach().cpu().squeeze(),
+                                target_surface_test.detach().cpu().squeeze(),
+                                input_surface_test.detach().cpu().squeeze(),
+                                var='pm10',
                                 step=target_time,
                                 path=png_path,
                                 cfg=cfg

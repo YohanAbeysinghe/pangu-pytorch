@@ -20,6 +20,8 @@ class PatchEmbedding_pretrain(nn.Module):
       self.conv_surface = nn.Conv1d(in_channels=112, out_channels=dim, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "pm25":
       self.conv_surface = nn.Conv1d(in_channels=128, out_channels=dim, kernel_size=1, stride=1)
+    if cfg.GLOBAL.MODEL == "All_pm":
+      self.conv_surface = nn.Conv1d(in_channels=160, out_channels=dim, kernel_size=1, stride=1)
     self.window_size = (2, 6, 12)  # Z,H,W
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
@@ -529,6 +531,9 @@ class PatchRecovery_pretrain(nn.Module):
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "pm25":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=80, kernel_size=1, stride=1) #@Yohan. Output channel size increased 64 --> 80 because of new variable.
+    if cfg.GLOBAL.MODEL == "All_pm":
+      self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=112, kernel_size=1, stride=1) 
+
 
   def forward(self, x, Z, H, W):
     # The inverse operation of the patch embedding operation, patch_size = (2, 4, 4) as in the original paper
@@ -575,5 +580,14 @@ class PatchRecovery_pretrain(nn.Module):
       output_surface = output_surface.view(output_surface.shape[0], 5, 1, 721, 1440)
       # output_surface = output_surface * self.surface_std + self.surface_mean
       output_surface = output_surface.view(output_surface.shape[0], 5, 721, 1440)
+
+    if self.cfg.GLOBAL.MODEL == "All_pm":
+      output_surface = output_surface.view(output_surface.shape[0], 7, self.patch_size[1], self.patch_size[2], H, W)
+      output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
+      output_surface = output_surface.reshape(output_surface.shape[0], 7, 724, 1440)
+      output_surface = output_surface[:, :, height_slice, :]
+      output_surface = output_surface.view(output_surface.shape[0], 7, 1, 721, 1440)
+      # output_surface = output_surface * self.surface_std + self.surface_mean
+      output_surface = output_surface.view(output_surface.shape[0], 7, 721, 1440)
 
     return output, output_surface

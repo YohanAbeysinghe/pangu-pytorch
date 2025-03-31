@@ -24,7 +24,7 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config2', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
 args = parser.parse_args()
 
@@ -159,7 +159,7 @@ model = train(model,
               train_loader=train_dataloader,
               val_loader=val_dataloader,
               optimizer=optimizer,
-              lr_scheduler=lr_scheduler,
+            #   lr_scheduler=lr_scheduler,
               res_path = output_path,
               device=device,
               writer=writer, 

@@ -26,7 +26,7 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config1', help='Option to load different configs')
+parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
 args = parser.parse_args()
 
@@ -154,6 +154,29 @@ if cfg.GLOBAL.MODEL == 'pm25':
     new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
     state_dict['_output_layer.conv_surface.bias'] = new_output_bias
 
+if cfg.GLOBAL.MODEL == 'All_pm':
+    # Learning rate for new variables.
+    model_state_dict = model.state_dict()
+
+    # Modify input layer for dimension matching and loading the existing weights
+    # for first 112 channels. Rest is initialized randomly.
+    new_input_weight = torch.zeros((192, 160, 1))
+    new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
+    state_dict['_input_layer.conv_surface.weight'] = new_input_weight
+
+    # Modify output layer for dimension matching and loading the existing weights
+    # for first 64 channels. Rest is initialized randomly.
+    new_output_weight = torch.zeros((112, 384, 1))
+    new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
+    nn.init.xavier_uniform_(new_output_weight[64:, :, :])
+    state_dict['_output_layer.conv_surface.weight'] = new_output_weight
+
+    # Modify output layer bias. Loading first 64 biases.
+    new_output_bias = torch.zeros(112)
+    new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
+    state_dict['_output_layer.conv_surface.bias'] = new_output_bias
+
 # Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
 model.load_state_dict(state_dict, strict=False)
 #
@@ -198,6 +221,18 @@ if cfg.GLOBAL.MODEL == 'original':
         param.requires_grad = True
 
 if cfg.GLOBAL.MODEL == 'pm25':
+    # Fine-tuning layers (MENA scaling)
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Set requires_grad for edited layers
+    for param in model._input_layer.conv_surface.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
+
+
+if cfg.GLOBAL.MODEL == 'All_pm':
     # Fine-tuning layers (MENA scaling)
     for param in model.parameters():
         param.requires_grad = False
@@ -271,6 +306,9 @@ best_model = torch.load(
     )
 
 logger.info("Begin testing...")
+
+print(f"Length of test_loader: {len(test_dataloader)}")
+
 
 test(test_loader=test_dataloader,
     model=best_model,

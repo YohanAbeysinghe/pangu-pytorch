@@ -76,12 +76,11 @@ def visualize(output, target, input, var, z, step, path, cfg):
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
-    if cfg.GLOBAL.MENA_crop:
-        # New subplot for the sliced region of 'input'
-        ax2 = fig.add_subplot(152)
-        plot2 = ax2.imshow(input[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
-        plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
-        ax2.title.set_text('input_slice')
+    # New subplot for the sliced region of 'input'
+    ax2 = fig.add_subplot(152)
+    plot2 = ax2.imshow(input[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
+    ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
     plot3 = ax3.imshow(target[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
@@ -113,21 +112,25 @@ def visualize_surface(output, target, input, var, step, path, cfg):
     output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
     target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
     input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
+
     # Use percentiles for robust color scaling, which ignores extreme outliers
-    vmin = np.percentile(input[var, :, :], 0)
-    vmax = np.percentile(input[var, :, :], 80)
+    if var=="pm1" or var=="pm25" or var=="pm10":
+        vmin = np.percentile(input[var, :, :], 0)
+        vmax = np.percentile(input[var, :, :], 80)
+    else:
+        vmin = input[var, :, :].min()
+        vmax = input[var, :, :].max()
 
     ax1 = fig.add_subplot(151)
     plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
-    if cfg.GLOBAL.MENA_crop:
-        # New subplot for the sliced region of 'input'
-        ax2 = fig.add_subplot(152)
-        plot2 = ax2.imshow(input[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
-        plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
-        ax2.title.set_text('input_slice')
+    # New subplot for the sliced region of 'input'
+    ax2 = fig.add_subplot(152)
+    plot2 = ax2.imshow(input[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
+    ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
     plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
