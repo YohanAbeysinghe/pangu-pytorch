@@ -305,8 +305,7 @@ def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
     upper_std = np.transpose(upper_std, (1, 3, 0, 2))
     upper_std = torch.from_numpy(upper_std)
 
-    return surface_mean.to(device), surface_std.to(device), upper_mean[..., None].to(device), upper_std[..., None].to(
-        device)
+    return surface_mean.to(device), surface_std.to(device), upper_mean[..., None].to(device), upper_std[..., None].to(device)
 
 
 def weatherStatistics_input(filepath=None, device="cpu", cfg=None):

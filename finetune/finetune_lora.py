@@ -39,7 +39,7 @@ torch.set_num_threads(cfg.GLOBAL.NUM_THREADS)
 ############################## Distributed Training #######################################
 ###########################################################################################
 #
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 #
 ###########################################################################################
@@ -124,35 +124,35 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 
 module_copy = copy.deepcopy(model) # For later comparisons
 
-checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False, map_location='cuda:2')
+checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False, map_location='cuda')
 state_dict = checkpoint['model']
 #
 ###########################################################################################
 ################### Editing Checkpoint to Get New Variables ###############################
 ###########################################################################################
 #
-if cfg.GLOBAL.MODEL == 'pm25':
-    # Learning rate for new variables.
-    model_state_dict = model.state_dict()
+# if cfg.GLOBAL.MODEL == 'pm25':
+#     # Learning rate for new variables.
+#     model_state_dict = model.state_dict()
 
-    # Modify input layer for dimension matching and loading the existing weights
-    # for first 112 channels. Rest is initialized randomly.
-    new_input_weight = torch.zeros((192, 128, 1))
-    new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
-    nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
-    state_dict['_input_layer.conv_surface.weight'] = new_input_weight
+#     # Modify input layer for dimension matching and loading the existing weights
+#     # for first 112 channels. Rest is initialized randomly.
+#     new_input_weight = torch.zeros((192, 128, 1))
+#     new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
+#     nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
+#     state_dict['_input_layer.conv_surface.weight'] = new_input_weight
 
-    # Modify output layer for dimension matching and loading the existing weights
-    # for first 64 channels. Rest is initialized randomly.
-    new_output_weight = torch.zeros((80, 384, 1))
-    new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
-    nn.init.xavier_uniform_(new_output_weight[64:, :, :])
-    state_dict['_output_layer.conv_surface.weight'] = new_output_weight
+#     # Modify output layer for dimension matching and loading the existing weights
+#     # for first 64 channels. Rest is initialized randomly.
+#     new_output_weight = torch.zeros((80, 384, 1))
+#     new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
+#     nn.init.xavier_uniform_(new_output_weight[64:, :, :])
+#     state_dict['_output_layer.conv_surface.weight'] = new_output_weight
 
-    # Modify output layer bias. Loading first 64 biases.
-    new_output_bias = torch.zeros(80)
-    new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
-    state_dict['_output_layer.conv_surface.bias'] = new_output_bias
+#     # Modify output layer bias. Loading first 64 biases.
+#     new_output_bias = torch.zeros(80)
+#     new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
+#     state_dict['_output_layer.conv_surface.bias'] = new_output_bias
 
 if cfg.GLOBAL.MODEL == 'All_pm':
     # Learning rate for new variables.
@@ -194,7 +194,7 @@ for n, m in model.named_modules():
         print(f"appended {n}")
 
 config = LoraConfig(
-    r=16,
+    r=cfg.PG.TRAIN.Low_Rank,
     lora_alpha=16,
     target_modules=target_modules,
     lora_dropout=0.1,
@@ -203,45 +203,50 @@ config = LoraConfig(
 
 peft_model = get_peft_model(model, config)
 
-optimizer = torch.optim.Adam(
-    peft_model.parameters(),
-    lr=cfg.PG.TRAIN.LR,
-    weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
-    )
+# if cfg.GLOBAL.MODEL == 'original':
+#     #Fully finetune
+#     for param in model.parameters():
+#         param.requires_grad = True
 
-# lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-#     optimizer,
-#     milestones=[25, 50],
-#     gamma=0.5
-#     )
+# if cfg.GLOBAL.MODEL == 'pm25':
+#     # Fine-tuning layers (MENA scaling)
+#     # for param in model.parameters():
+#     #     param.requires_grad = False
 
-if cfg.GLOBAL.MODEL == 'original':
-    #Fully finetune
-    for param in model.parameters():
-        param.requires_grad = True
-
-if cfg.GLOBAL.MODEL == 'pm25':
-    # Fine-tuning layers (MENA scaling)
-    for param in model.parameters():
-        param.requires_grad = False
-
-    # Set requires_grad for edited layers
-    for param in model._input_layer.conv_surface.parameters():
-        param.requires_grad = True
-    for param in model._output_layer.conv_surface.parameters():
-        param.requires_grad = True
-
+#     # Set requires_grad for edited layers
+#     for param in peft_model._input_layer.conv_surface.parameters():
+#         param.requires_grad = True
+#     for param in peft_model._output_layer.conv_surface.parameters():
+#         param.requires_grad = True
 
 if cfg.GLOBAL.MODEL == 'All_pm':
     # Fine-tuning layers (MENA scaling)
-    for param in model.parameters():
-        param.requires_grad = False
+    # for param in model.parameters():
+    #     param.requires_grad = False
 
     # Set requires_grad for edited layers
     for param in model._input_layer.conv_surface.parameters():
         param.requires_grad = True
     for param in model._output_layer.conv_surface.parameters():
         param.requires_grad = True
+
+# before_weights = {
+#     "input": peft_model._input_layer.conv_surface.weight.clone().detach(),
+#     "output": peft_model._output_layer.conv_surface.weight.clone().detach(),
+# }
+
+optimizer = torch.optim.Adam(
+    peft_model.parameters(),
+    lr=cfg.PG.TRAIN.LR,
+    # weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
+    )
+
+lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    optimizer,
+    milestones=[25, 50],
+    gamma=0.5
+    )
+
 
 start_epoch = 1
 #
@@ -283,39 +288,55 @@ print("weather statistics are loaded!")
 ###########################################################################################
 #
 peft_model = train(
-    peft_model,
-    train_loader=train_dataloader,
-    val_loader=val_dataloader,
-    optimizer=optimizer,
-    # lr_scheduler=lr_scheduler,
-    res_path = output_path,
-    device=device,
-    writer=writer, 
-    logger = logger,
-    start_epoch=start_epoch,
-    cfg = cfg
-    )
+        peft_model,
+        train_loader=train_dataloader,
+        val_loader=val_dataloader,
+        optimizer=optimizer,
+        # lr_scheduler=lr_scheduler,
+        res_path = output_path,
+        device=device,
+        writer=writer, 
+        logger = logger,
+        start_epoch=start_epoch,
+        cfg = cfg
+        # rank=local_rank
+        )
+
+# after_weights = {
+#     "input": peft_model._input_layer.conv_surface.weight.detach(),
+#     "output": peft_model._output_layer.conv_surface.weight.detach(),
+# }
+
+# def check_weight_change(name, before, after):
+#     if torch.allclose(before, after, atol=1e-6):
+#         print(f"[{name}] ❌ No update detected.")
+#     else:
+#         print(f"[{name}] ✅ Weights updated.")
+
+# check_weight_change("Input Layer", before_weights["input"], after_weights["input"])
+# check_weight_change("Output Layer", before_weights["output"], after_weights["output"])
+
 ###########################################################################################
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-best_model = torch.load(
-    os.path.join(output_path,"models/best_model.pth"),
-    map_location='cuda:2',
-    weights_only=False
-    )
+# best_model = torch.load(
+#     os.path.join(output_path,"models/best_model.pth"),
+#     map_location='cuda',
+#     weights_only=False
+#     )
 
-logger.info("Begin testing...")
+# logger.info("Begin testing...")
 
-print(f"Length of test_loader: {len(test_dataloader)}")
+# print(f"Length of test_loader: {len(test_dataloader)}")
 
 
-test(test_loader=test_dataloader,
-    model=best_model,
-    device=device,
-    res_path=output_path,
-    cfg = cfg
-    )
+# test(test_loader=test_dataloader,
+#     model=best_model,
+#     device=device,
+#     res_path=output_path,
+#     cfg = cfg
+#     )
 #
 ###########################################################################################
 ###########################################################################################

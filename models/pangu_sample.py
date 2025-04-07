@@ -105,7 +105,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
             epoch_loss += loss.item()
 
-            if rank == 0 and id%10 == 0:
+            if rank == 0 and id%1 == 0:
             #     step = num_iterations_per_epoch*(i-1) + id
             #     wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
             #     wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
