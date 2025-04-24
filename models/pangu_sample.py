@@ -106,18 +106,18 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
             epoch_loss += loss.item()
 
             if rank == 0 and id%1 == 0:
-            #     step = num_iterations_per_epoch*(i-1) + id
-            #     wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
-            #     wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
-            #     wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
-            #     wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
-            #     # wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
-            #     wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
-            #     wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
-            #     wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
-            #     wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
-            #     wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
-            #     wandb.log({"train_loss": loss.item()})
+                step = num_iterations_per_epoch*(i-1) + id
+                wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
+                wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
+                wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
+                wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
+                # wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
+                wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
+                wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
+                wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
+                wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
+                wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
+                wandb.log({"train_loss": loss.item()})
             #     # wandb.log({"GPU Memory (MB)": utils.get_gpu_memory()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
@@ -145,145 +145,145 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
             torch.save(model.state_dict(), os.path.join(model_save_path, 'train_model_nonddp_{}.pth'.format(i)))
             # torch.save(model, os.path.join(model_save_path,'train_{}.pth'.format(i)))
 
-        # Begin to validate
-        if i % cfg.PG.VAL.INTERVAL == 0:
-            with torch.no_grad():
-                model.eval()
-                val_loss = 0.0
+        # # Begin to validate
+        # if i % cfg.PG.VAL.INTERVAL == 0:
+        #     with torch.no_grad():
+        #         model.eval()
+        #         val_loss = 0.0
 
-                logger.info("Validation on rank = %d", rank)
-                if rank==0:
-                    logger.info("Number of iterations in validation: %d", len(val_loader))
+        #         logger.info("Validation on rank = %d", rank)
+        #         if rank==0:
+        #             logger.info("Number of iterations in validation: %d", len(val_loader))
 
-                for id, val_data in enumerate(val_loader, 0):
+        #         for id, val_data in enumerate(val_loader, 0):
 
-                    # Skip this batch if any data component is empty
-                    if (val_data[0].sum() == 0 or 
-                        val_data[1].sum() == 0 or 
-                        val_data[2].sum() == 0 or 
-                        val_data[3].sum() == 0
-                        ):
-                        # print(f"Skipping batch {id} due to missing or empty data.")
-                        continue
+        #             # Skip this batch if any data component is empty
+        #             if (val_data[0].sum() == 0 or 
+        #                 val_data[1].sum() == 0 or 
+        #                 val_data[2].sum() == 0 or 
+        #                 val_data[3].sum() == 0
+        #                 ):
+        #                 # print(f"Skipping batch {id} due to missing or empty data.")
+        #                 continue
                     
-                    input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
-                    input_val_raw, input_surface_val_raw = input_val, input_surface_val
-                    input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
+        #             input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
+        #             input_val_raw, input_surface_val_raw = input_val, input_surface_val
+        #             input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
 
-                    # Inference
-                    output_val, output_surface_val = model(input_val,input_surface_val,
-                                                           aux_constants['weather_statistics'],
-                                                           aux_constants['constant_maps'],
-                                                           aux_constants['const_h']
-                                                           )
+        #             # Inference
+        #             output_val, output_surface_val = model(input_val,input_surface_val,
+        #                                                    aux_constants['weather_statistics'],
+        #                                                    aux_constants['constant_maps'],
+        #                                                    aux_constants['const_h']
+        #                                                    )
 
-                    # Noralize the gt to make the loss compariable
-                    target_val, target_surface_val = utils_data.normData(target_val,
-                                                                         target_surface_val,
-                                                                         aux_constants['weather_statistics_last'])
+        #             # Noralize the gt to make the loss compariable
+        #             target_val, target_surface_val = utils_data.normData(target_val,
+        #                                                                  target_surface_val,
+        #                                                                  aux_constants['weather_statistics_last'])
 
-                    val_loss_surface = criterion(output_surface_val, target_surface_val)
-                    weighted_val_loss_surface = torch.mean(val_loss_surface * surface_weights)
+        #             val_loss_surface = criterion(output_surface_val, target_surface_val)
+        #             weighted_val_loss_surface = torch.mean(val_loss_surface * surface_weights)
 
-                    val_loss_upper = criterion(output_val, target_val)
-                    weighted_val_loss_upper = torch.mean(val_loss_upper * upper_weights)
+        #             val_loss_upper = criterion(output_val, target_val)
+        #             weighted_val_loss_upper = torch.mean(val_loss_upper * upper_weights)
 
-                    loss = weighted_val_loss_upper + weighted_val_loss_surface * 0.25
+        #             loss = weighted_val_loss_upper + weighted_val_loss_surface * 0.25
 
-                    val_loss += loss.item()
+        #             val_loss += loss.item()
 
-                    if rank == 0:
-                        logger.info(f"Epoch {i}, Iteration {id + 1}/{len(val_loader)}: Loss = {loss.item():.6f}")
+        #             if rank == 0:
+        #                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(val_loader)}: Loss = {loss.item():.6f}")
 
-                if rank == 0:
-                    val_loss /= len(val_loader)
-                    writer.add_scalars(
-                        'Loss',
-                        {'train': epoch_loss,
-                         'val': val_loss},
-                         i
-                         )
+        #         if rank == 0:
+        #             val_loss /= len(val_loader)
+        #             writer.add_scalars(
+        #                 'Loss',
+        #                 {'train': epoch_loss,
+        #                  'val': val_loss},
+        #                  i
+        #                  )
                     
-                    logger.info("Validate at Epoch {} : {:.3f}".format(i, val_loss))
-                    # Visualize the training process
-                    png_path = os.path.join(res_path, "png_training")
-                    utils.mkdirs(png_path)
-                    # Normalize the data back to the original space for visualization
-                    output_val, output_surface_val = utils_data.normBackData(output_val, output_surface_val,
-                                                                             aux_constants['weather_statistics_last'])
-                    target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
-                                                                             aux_constants['weather_statistics_last'])
+        #             logger.info("Validate at Epoch {} : {:.3f}".format(i, val_loss))
+        #             # Visualize the training process
+        #             png_path = os.path.join(res_path, "png_training")
+        #             utils.mkdirs(png_path)
+        #             # Normalize the data back to the original space for visualization
+        #             output_val, output_surface_val = utils_data.normBackData(output_val, output_surface_val,
+        #                                                                      aux_constants['weather_statistics_last'])
+        #             target_val, target_surface_val = utils_data.normBackData(target_val, target_surface_val,
+        #                                                                      aux_constants['weather_statistics_last'])
 
-                    utils.visualize(
-                        output_val.detach().cpu().squeeze(),
-                        target_val.detach().cpu().squeeze(),
-                        input_val_raw.squeeze(),
-                        var='u',
-                        z=12,
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
+        #             utils.visualize(
+        #                 output_val.detach().cpu().squeeze(),
+        #                 target_val.detach().cpu().squeeze(),
+        #                 input_val_raw.squeeze(),
+        #                 var='u',
+        #                 z=12,
+        #                 step=i,
+        #                 path=png_path,
+        #                 cfg=cfg
+        #                 )
                     
-                    utils.visualize_surface(
-                        output_surface_val.detach().cpu().squeeze(),
-                        target_surface_val.detach().cpu().squeeze(),
-                        input_surface_val_raw.squeeze(),
-                        var='u10',
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
+        #             utils.visualize_surface(
+        #                 output_surface_val.detach().cpu().squeeze(),
+        #                 target_surface_val.detach().cpu().squeeze(),
+        #                 input_surface_val_raw.squeeze(),
+        #                 var='u10',
+        #                 step=i,
+        #                 path=png_path,
+        #                 cfg=cfg
+        #                 )
 
-                    utils.visualize_surface(
-                        output_surface_val.detach().cpu().squeeze(),
-                        target_surface_val.detach().cpu().squeeze(),
-                        input_surface_val_raw.squeeze(),
-                        var='pm1',
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
+        #             utils.visualize_surface(
+        #                 output_surface_val.detach().cpu().squeeze(),
+        #                 target_surface_val.detach().cpu().squeeze(),
+        #                 input_surface_val_raw.squeeze(),
+        #                 var='pm1',
+        #                 step=i,
+        #                 path=png_path,
+        #                 cfg=cfg
+        #                 )
                     
-                    utils.visualize_surface(
-                        output_surface_val.detach().cpu().squeeze(),
-                        target_surface_val.detach().cpu().squeeze(),
-                        input_surface_val_raw.squeeze(),
-                        var='pm25',
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
+        #             utils.visualize_surface(
+        #                 output_surface_val.detach().cpu().squeeze(),
+        #                 target_surface_val.detach().cpu().squeeze(),
+        #                 input_surface_val_raw.squeeze(),
+        #                 var='pm25',
+        #                 step=i,
+        #                 path=png_path,
+        #                 cfg=cfg
+        #                 )
                     
-                    utils.visualize_surface(
-                        output_surface_val.detach().cpu().squeeze(),
-                        target_surface_val.detach().cpu().squeeze(),
-                        input_surface_val_raw.squeeze(),
-                        var='pm10',
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
+        #             utils.visualize_surface(
+        #                 output_surface_val.detach().cpu().squeeze(),
+        #                 target_surface_val.detach().cpu().squeeze(),
+        #                 input_surface_val_raw.squeeze(),
+        #                 var='pm10',
+        #                 step=i,
+        #                 path=png_path,
+        #                 cfg=cfg
+        #                 )
                     
-                    # Early stopping
-                    if val_loss < best_loss:
-                        best_loss = val_loss
-                        best_model = copy.deepcopy(model)
-                        # Save the best model
-                        torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
-                        torch.save(best_model.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
-                        logger.info(f"current best model is saved at {i} epoch.")
-                        epochs_since_last_improvement = 0
+        #             # Early stopping
+        #             if val_loss < best_loss:
+        #                 best_loss = val_loss
+        #                 best_model = copy.deepcopy(model)
+        #                 # Save the best model
+        #                 torch.save(best_model, os.path.join(model_save_path, 'best_model.pth'))
+        #                 torch.save(best_model.state_dict(), os.path.join(model_save_path, 'best_model_nonddp.pth'))
+        #                 logger.info(f"current best model is saved at {i} epoch.")
+        #                 epochs_since_last_improvement = 0
 
-                    else:
-                        epochs_since_last_improvement += 1
-                        if epochs_since_last_improvement >= 5:
-                            logger.info(f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
-                            break
+        #             else:
+        #                 epochs_since_last_improvement += 1
+        #                 if epochs_since_last_improvement >= 5:
+        #                     logger.info(f"No improvement in validation loss for {epochs_since_last_improvement} epochs, terminating training.")
+        #                     break
 
 
         # print("lr",lr_scheduler.get_last_lr()[0])
-    return best_model
+    return model
 
 
 def test(test_loader, model, device, res_path, cfg):

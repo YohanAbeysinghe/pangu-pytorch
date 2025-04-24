@@ -13,6 +13,7 @@ from models.pangu_model import PanguModel
 from models.pangu_sample import test, train
 
 import os
+import wandb
 import copy
 import logging
 import argparse
@@ -115,6 +116,25 @@ test_dataloader = data.DataLoader(dataset=test_dataset,
                                   shuffle=False,
                                   num_workers=0,
                                   pin_memory=False)
+#
+###########################################################################################
+################################## WandB ##################################################
+###########################################################################################
+#
+# Initialize W&B with your project name and hyperparameters
+os.environ["WANDB_API_KEY"] = "f26dcc1314b4959cd257db827dcdcff1a2e54f2e"
+
+wandb.init(project="climate_modeling", name=args.output, config={
+    "learning_rate": cfg.PG.TRAIN.LR,
+    "batch_size": cfg.PG.TRAIN.BATCH_SIZE,
+    "num_epochs": cfg.PG.TRAIN.EPOCHS,
+    # "num_gpus": num_gpus,
+    "start_time": cfg.PG.TRAIN.START_TIME,
+    "end_time": cfg.PG.TRAIN.END_TIME,
+    "output_path": output_path,
+    "pm2.5_weightage": cfg.PG.TRAIN.SURFACE_WEIGHTS[4],
+    "Law_rank": cfg.PG.TRAIN.Low_Rank,
+})
 #
 ###########################################################################################
 ###################################Loading Checkpoint######################################
