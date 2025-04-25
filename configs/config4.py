@@ -11,7 +11,7 @@ __C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
-__C.GLOBAL.MODEL = 'All_pm'
+__C.GLOBAL.MODEL = 'pm1'
 __C.GLOBAL.MENA_crop = True
 
 for dirs in ['/home/yohan.abeysinghe/Pangu/pangu-pytorch']:
@@ -26,7 +26,7 @@ __C.PG_OUT_PATH = os.path.join('/l/users/yohan.abeysinghe/pangu_data/results')
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
-__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m', 'pm1', 'pm25', 'pm10']
+__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m', 'pm1']
 __C.ERA5_UPPER_VARIABLES = ['z','q','t','u','v']
 
 __C.PG = edict()
@@ -36,11 +36,11 @@ __C.PG.TRAIN.EPOCHS = 1
 __C.PG.TRAIN.LR = 5e-6 #5e-4
 __C.PG.TRAIN.WEIGHT_DECAY = 3e-7 #3e-6
 __C.PG.TRAIN.START_TIME =  '20190101' #'20030101'
-__C.PG.TRAIN.END_TIME = '20190331'
+__C.PG.TRAIN.END_TIME = '20191231'
 __C.PG.TRAIN.FREQUENCY = '12h'
 __C.PG.TRAIN.BATCH_SIZE = 1
 __C.PG.TRAIN.UPPER_WEIGHTS = [3.00, 0.60, 1.50, 0.77, 0.54]
-__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00, 1.20, 1.20, 1.20]
+__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00, 1.20]
 __C.PG.TRAIN.SAVE_INTERVAL = 1
 __C.PG.TRAIN.Low_Rank = 8
 

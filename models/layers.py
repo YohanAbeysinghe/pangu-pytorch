@@ -18,7 +18,7 @@ class PatchEmbedding_pretrain(nn.Module):
     self.conv = nn.Conv1d(in_channels=192, out_channels=dim, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=112, out_channels=dim, kernel_size=1, stride=1)
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
       self.conv_surface = nn.Conv1d(in_channels=128, out_channels=dim, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "All_pm":
       self.conv_surface = nn.Conv1d(in_channels=160, out_channels=dim, kernel_size=1, stride=1)
@@ -529,7 +529,7 @@ class PatchRecovery_pretrain(nn.Module):
 
     if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=80, kernel_size=1, stride=1) #@Yohan. Output channel size increased 64 --> 80 because of new variable.
     if cfg.GLOBAL.MODEL == "All_pm":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=112, kernel_size=1, stride=1) 
@@ -572,7 +572,7 @@ class PatchRecovery_pretrain(nn.Module):
       # output_surface = output_surface * self.surface_std + self.surface_mean
       output_surface = output_surface.view(output_surface.shape[0], 4, 721, 1440)
 
-    if self.cfg.GLOBAL.MODEL == "pm25":
+    if self.cfg.GLOBAL.MODEL == "pm1":
       output_surface = output_surface.view(output_surface.shape[0], 5, self.patch_size[1], self.patch_size[2], H, W)
       output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
       output_surface = output_surface.reshape(output_surface.shape[0], 5, 724, 1440)

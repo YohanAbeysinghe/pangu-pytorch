@@ -133,8 +133,8 @@ class NetCDFDataset(data.Dataset):
                                   surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...]), axis=0)
             assert surface.shape == (4, 721, 1440)
 
-        if self.cfg.GLOBAL.MODEL == "pm25":
-            surface_pm2p5 = dataset_surface['pm2p5'].values.astype(np.float32)
+        if self.cfg.GLOBAL.MODEL == "pm1":
+            surface_pm2p5 = dataset_surface['pm1'].values.astype(np.float32)
             surface = np.concatenate((surface_mslp[np.newaxis, ...], surface_u10[np.newaxis, ...],
                                     surface_v10[np.newaxis, ...], surface_t2m[np.newaxis, ...],
                                     surface_pm2p5[np.newaxis, ...]),
@@ -269,7 +269,7 @@ def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
         surface_mean = surface_mean.view(1, 4, 1, 1)
         surface_std = surface_std.view(1, 4, 1, 1)
 
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
         surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) # @Yohan. Adding a new mean pm.
         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
@@ -318,7 +318,7 @@ def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
         surface_mean = torch.from_numpy(surface_mean)
         surface_std = torch.from_numpy(surface_std)
 
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
         surface_mean = np.append(surface_mean, np.float32(3.613958909909343e-08)) #Adding a new mean ndvi.
         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)

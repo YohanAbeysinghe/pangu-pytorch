@@ -111,14 +111,13 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
                 wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
                 wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
-                # wandb.log({"pm2p5_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
+                wandb.log({"pm1_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
                 wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
                 wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
                 wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
                 wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
                 wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
                 wandb.log({"train_loss": loss.item()})
-            #     # wandb.log({"GPU Memory (MB)": utils.get_gpu_memory()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
             torch.cuda.empty_cache()
@@ -139,11 +138,9 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
         if i % cfg.PG.TRAIN.SAVE_INTERVAL == 0:
             save_file = {"model": model.state_dict(),
                          "optimizer": optimizer.state_dict(),
-                        #  "lr_scheduler": lr_scheduler.state_dict(),
                          "epoch": i}
             torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
-            torch.save(model.state_dict(), os.path.join(model_save_path, 'train_model_nonddp_{}.pth'.format(i)))
-            # torch.save(model, os.path.join(model_save_path,'train_{}.pth'.format(i)))
+            torch.save(model.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
 
         # # Begin to validate
         # if i % cfg.PG.VAL.INTERVAL == 0:
