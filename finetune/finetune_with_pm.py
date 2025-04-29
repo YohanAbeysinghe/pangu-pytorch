@@ -27,8 +27,8 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config3', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='test1', help='Name of the output directory')
+parser.add_argument('--config', type=str, default='config4', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='pm_4_29', help='Name of the output directory')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -174,29 +174,6 @@ if cfg.GLOBAL.MODEL == 'pm1':
     new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
     state_dict['_output_layer.conv_surface.bias'] = new_output_bias
 
-if cfg.GLOBAL.MODEL == 'All_pm':
-    # Learning rate for new variables.
-    model_state_dict = model.state_dict()
-
-    # Modify input layer for dimension matching and loading the existing weights
-    # for first 112 channels. Rest is initialized randomly.
-    new_input_weight = torch.zeros((192, 160, 1))
-    new_input_weight[:, :112, :] = state_dict['_input_layer.conv_surface.weight']
-    nn.init.xavier_uniform_(new_input_weight[:, 112:, :])
-    state_dict['_input_layer.conv_surface.weight'] = new_input_weight
-
-    # Modify output layer for dimension matching and loading the existing weights
-    # for first 64 channels. Rest is initialized randomly.
-    new_output_weight = torch.zeros((112, 384, 1))
-    new_output_weight[:64, :, :] = state_dict['_output_layer.conv_surface.weight']
-    nn.init.xavier_uniform_(new_output_weight[64:, :, :])
-    state_dict['_output_layer.conv_surface.weight'] = new_output_weight
-
-    # Modify output layer bias. Loading first 64 biases.
-    new_output_bias = torch.zeros(112)
-    new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
-    state_dict['_output_layer.conv_surface.bias'] = new_output_bias
-
 # Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
 model.load_state_dict(state_dict, strict=False)
 #
@@ -206,49 +183,44 @@ model.load_state_dict(state_dict, strict=False)
 #
 # print([(n, type(m)) for n, m in model.named_modules()])
 
-# target_modules = []
+target_modules = []
 
-# for n, m in model.named_modules():
-#     if isinstance(m, nn.Linear):
-#         target_modules.append(n)
-#         print(f"appended {n}")
+for n, m in model.named_modules():
+    if isinstance(m, nn.Linear):
+        target_modules.append(n)
+        print(f"appended {n}")
 
-# config = LoraConfig(
-#     r=cfg.PG.TRAIN.Low_Rank,
-#     lora_alpha=16,
-#     target_modules=target_modules,
-#     lora_dropout=0.1,
-#     # modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
-# )
+config = LoraConfig(
+    r=cfg.PG.TRAIN.Low_Rank,
+    lora_alpha=16,
+    target_modules=target_modules,
+    lora_dropout=0.1,
+    bias = "none",
+    # modules_to_save=["_output_layer.conv_surface","_output_layer.conv"]
+)
 
-# peft_model = get_peft_model(model, config)
+model = get_peft_model(model, config)
 
 # if cfg.GLOBAL.MODEL == 'original':
 #     #Fully finetune
 #     for param in model.parameters():
 #         param.requires_grad = True
 
-# if cfg.GLOBAL.MODEL == 'pm1':
-#     # Fine-tuning layers (MENA scaling)
-#     # for param in model.parameters():
-#     #     param.requires_grad = False
+if cfg.GLOBAL.MODEL == 'pm1':
+    # Fine-tuning layers (MENA scaling)
+    for param in model.parameters():
+        param.requires_grad = False
 
-#     # Set requires_grad for edited layers
-#     for param in peft_model._input_layer.conv_surface.parameters():
-#         param.requires_grad = True
-#     for param in peft_model._output_layer.conv_surface.parameters():
-#         param.requires_grad = True
+    # Set requires_grad for edited layers
+    for param in model._input_layer.conv_surface.parameters():
+        param.requires_grad = True
+    for param in model._output_layer.conv_surface.parameters():
+        param.requires_grad = True
 
-# if cfg.GLOBAL.MODEL == 'All_pm':
-#     # Fine-tuning layers (MENA scaling)
-#     # for param in model.parameters():
-#     #     param.requires_grad = False
-
-#     # Set requires_grad for edited layers
-#     for param in model._input_layer.conv_surface.parameters():
-#         param.requires_grad = True
-#     for param in model._output_layer.conv_surface.parameters():
-#         param.requires_grad = True
+    # Unfreeze LoRA weights
+    for name, param in model.named_parameters():
+        if "lora_" in name:
+            param.requires_grad = True
 
 # before_weights = {
 #     "input": peft_model._input_layer.conv_surface.weight.clone().detach(),
@@ -256,10 +228,9 @@ model.load_state_dict(state_dict, strict=False)
 # }
 
 optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=cfg.PG.TRAIN.LR,
-    # weight_decay=cfg.PG.TRAIN.WEIGHT_DECAY
-    )
+    filter(lambda p: p.requires_grad,model.parameters()),
+    lr = cfg.PG.TRAIN.LR ,
+    weight_decay= cfg.PG.TRAIN.WEIGHT_DECAY)
 
 # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
 #     optimizer,
@@ -269,29 +240,6 @@ optimizer = torch.optim.Adam(
 
 
 start_epoch = 1
-#
-###########################################################################################
-###################################  Lora Logistics  ######################################
-###########################################################################################
-#
-# for name, param in peft_model.base_model.named_parameters():
-#     if "lora" not in name:
-#         continue
-
-#     print(f"New parameter {name:<13} | {param.numel():>5} parameters | updated")
-
-# params_before = dict(module_copy.named_parameters())
-# for name, param in peft_model.base_model.named_parameters():
-#     if "lora" in name:
-#         continue
-
-#     name_before = name.partition(".")[-1].replace("original_", "").replace("module.", "").replace(
-#         "modules_to_save.default.", "")
-#     param_before = params_before[name_before]
-#     if torch.allclose(param, param_before):
-#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | not updated")
-#     else:
-#         print(f"Parameter {name_before:<13} | {param.numel():>7} parameters | updated")
 #
 ###########################################################################################
 ############################## Logging Info ###############################################
@@ -307,7 +255,7 @@ print("weather statistics are loaded!")
 ############################## Train and Validation #######################################
 ###########################################################################################
 #
-peft_model = train(
+model = train(
         model,
         train_loader=train_dataloader,
         val_loader=val_dataloader,
@@ -322,41 +270,27 @@ peft_model = train(
         # rank=local_rank
         )
 
-# after_weights = {
-#     "input": peft_model._input_layer.conv_surface.weight.detach(),
-#     "output": peft_model._output_layer.conv_surface.weight.detach(),
-# }
-
-# def check_weight_change(name, before, after):
-#     if torch.allclose(before, after, atol=1e-6):
-#         print(f"[{name}] ❌ No update detected.")
-#     else:
-#         print(f"[{name}] ✅ Weights updated.")
-
-# check_weight_change("Input Layer", before_weights["input"], after_weights["input"])
-# check_weight_change("Output Layer", before_weights["output"], after_weights["output"])
-
 ###########################################################################################
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-best_model = torch.load(
-    os.path.join(output_path,"models/best_model.pth"),
-    map_location='cuda',
-    weights_only=False
-    )
+# best_model = torch.load(
+#     os.path.join(output_path,"models/best_model.pth"),
+#     map_location='cuda',
+#     weights_only=False
+#     )
 
-logger.info("Begin testing...")
+# logger.info("Begin testing...")
 
-print(f"Length of test_loader: {len(test_dataloader)}")
+# print(f"Length of test_loader: {len(test_dataloader)}")
 
 
-test(test_loader=test_dataloader,
-    model=best_model,
-    device=device,
-    res_path=output_path,
-    cfg = cfg
-    )
+# test(test_loader=test_dataloader,
+#     model=best_model,
+#     device=device,
+#     res_path=output_path,
+#     cfg = cfg
+#     )
 #
 ###########################################################################################
 ###########################################################################################

@@ -8,6 +8,8 @@ from torch import nn
 import wandb
 from era5_data import score
 from era5_data import utils, utils_data
+from loss.exloss import Exloss
+from torch.cuda.amp import autocast, GradScaler
 
 def train(model, train_loader, val_loader, optimizer, res_path, device, writer, logger, start_epoch,
           rank=0, cfg=None):
@@ -21,7 +23,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
     # Loss function
     num_iterations_per_epoch = len(train_loader)
-    criterion = nn.L1Loss(reduction='none')
+    # criterion = nn.L1Loss(reduction='none')
 
     # training epoch
     epochs = cfg.PG.TRAIN.EPOCHS
@@ -72,24 +74,59 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
             # Normalize gt to make loss compariable
             target, target_surface = utils_data.normData(target, target_surface, aux_constants['weather_statistics_last'])
 
-            # We use the MAE loss to train the model
-            # Different weight can be applied for different fields if needed
-            loss_surface = criterion(output_surface, target_surface)
 
-            # Cropping into a slightly larger region than MENA.
-            if cfg.GLOBAL.MENA_crop:
-                # loss_surface = loss_surface[:, :, 179:388, 720:1026]
-                loss_surface = loss_surface[:, :, 175:392, 718:1030]
+            ######Surface Loss######
 
-            weighted_surface_loss = torch.mean(loss_surface * surface_weights)
+            # # We use the MAE loss to train the model
+            # # Different weight can be applied for different fields if needed
+            # loss_surface = criterion(output_surface, target_surface)
 
-            loss_upper = criterion(output, target)
-            if cfg.GLOBAL.MENA_crop:
-                # loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
-                loss_upper = loss_upper[:, :, :, 175:392, 718:1030]
+            # # Cropping into a slightly larger region than MENA.
+            # if cfg.GLOBAL.MENA_crop:
+            #     # loss_surface = loss_surface[:, :, 179:388, 720:1026]
+            #     loss_surface = loss_surface[:, :, 175:392, 718:1030]
 
-            weighted_upper_loss = torch.mean(loss_upper * upper_weights)
-            # The weight of surface loss is 0.25
+            # weighted_surface_loss = torch.mean(loss_surface * surface_weights)
+
+            loss_surface = []
+            weighted_surface_loss = 0
+            output_surface = output_surface[:, :, 175:392, 718:1030]
+            target_surface = target_surface[:, :, 175:392, 718:1030]
+            for j in range(surface_weights.shape[1]):
+                w = float(surface_weights[0, i, 0, 0])
+                output_surface_slice = output_surface[:, i, :, :].unsqueeze(1)    # (N, C, H, W)
+                target_surface_slice = target_surface[:, i, :, :].unsqueeze(1)  # (N, C, H, W)
+                loss = Exloss(output_surface_slice, target_surface_slice)
+                loss_surface.append(loss)
+                weighted_surface_loss += w * loss
+            # print(weighted_surface_loss.shape)
+            
+
+            #######Upper Loss######
+
+            # loss_upper = criterion(output, target)
+            # if cfg.GLOBAL.MENA_crop:
+            #     # loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
+            #     loss_upper = loss_upper[:, :, :, 175:392, 718:1030]
+
+            # weighted_upper_loss = torch.mean(loss_upper * upper_weights)
+            # # The weight of surface loss is 0.25
+
+            loss_upper = []
+            weighted_upper_loss = 0
+            output = output[:, :, :, 175:392, 718:1030]
+            target = target[:, :, :, 175:392, 718:1030]
+            for j in range(upper_weights.shape[1]):
+                w = float(upper_weights[0, i, 0, 0, 0])
+                output_slice = output[:, i, :, :, :]    # (N, C, H, W)
+                target_slice = target[:, i, :, :, :]  # (N, C, H, W)
+                loss = Exloss(output_slice, target_slice)
+                loss_upper.append(loss)
+                weighted_upper_loss += w * loss
+            # print(weighted_upper_loss.shape)
+
+
+            #######Total Loss######
             loss = weighted_upper_loss + weighted_surface_loss * 0.25
 
             # #Accounting for NaN losses.
@@ -98,25 +135,26 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 continue  # Skip this batch and move to the next one
 
             loss.backward()
-            optimizer.step()
 
             # Gradient Clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
+            optimizer.step()
+
             epoch_loss += loss.item()
 
-            if rank == 0 and id%1 == 0:
+            if rank == 0 and id%5 == 0:
                 step = num_iterations_per_epoch*(i-1) + id
-                wandb.log({"mslp_loss": torch.mean(loss_surface[0][0]).item()}, step=step)
-                wandb.log({"u10_loss": torch.mean(loss_surface[0][1]).item()}, step=step)
-                wandb.log({"v10_loss": torch.mean(loss_surface[0][2]).item()}, step=step)
-                wandb.log({"t2m_loss": torch.mean(loss_surface[0][3]).item()}, step=step)
-                wandb.log({"pm1_loss": torch.mean(loss_surface[0][4]).item()}, step=step)
-                wandb.log({"z_loss": torch.mean(loss_upper[0][0]).item()}, step=step)
-                wandb.log({"q_loss": torch.mean(loss_upper[0][1]).item()}, step=step)
-                wandb.log({"t_loss": torch.mean(loss_upper[0][2]).item()}, step=step)
-                wandb.log({"u_loss": torch.mean(loss_upper[0][3]).item()}, step=step)
-                wandb.log({"v_loss": torch.mean(loss_upper[0][4]).item()}, step=step)
+                wandb.log({"mslp_loss": torch.mean(loss_surface[0]).item()}, step=step)
+                wandb.log({"u10_loss": torch.mean(loss_surface[1]).item()}, step=step)
+                wandb.log({"v10_loss": torch.mean(loss_surface[2]).item()}, step=step)
+                wandb.log({"t2m_loss": torch.mean(loss_surface[3]).item()}, step=step)
+                wandb.log({"pm1_loss": torch.mean(loss_surface[4]).item()}, step=step)
+                wandb.log({"z_loss": torch.mean(loss_upper[0]).item()}, step=step)
+                wandb.log({"q_loss": torch.mean(loss_upper[1]).item()}, step=step)
+                wandb.log({"t_loss": torch.mean(loss_upper[2]).item()}, step=step)
+                wandb.log({"u_loss": torch.mean(loss_upper[3]).item()}, step=step)
+                wandb.log({"v_loss": torch.mean(loss_upper[4]).item()}, step=step)
                 wandb.log({"train_loss": loss.item()})
                 logger.info(f"Epoch {i}, Iteration {id + 1}/{len(train_loader)}: Loss = {loss.item():.6f}")
             
@@ -141,6 +179,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                          "epoch": i}
             torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
             torch.save(model.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
+            model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
 
         # # Begin to validate
         # if i % cfg.PG.VAL.INTERVAL == 0:

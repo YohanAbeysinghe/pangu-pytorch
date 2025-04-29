@@ -83,17 +83,17 @@ def visualize(output, target, input, var, z, step, path, cfg):
     ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
-    plot3 = ax3.imshow(target[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plot3 = ax3.imshow(target[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
     ax3.title.set_text('gt')
 
     ax4 = fig.add_subplot(154)
-    plot4 = ax4.imshow(output[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plot4 = ax4.imshow(output[var, z, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
     ax4.title.set_text('pred')
 
     ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
+    plot5 = ax5.imshow(output[var, z, 179:388, 720:1026] - target[var, z, 179:388, 720:1026], cmap="RdBu")
     plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
     ax5.title.set_text('bias')
 
@@ -115,11 +115,11 @@ def visualize_surface(output, target, input, var, step, path, cfg):
 
     # Use percentiles for robust color scaling, which ignores extreme outliers
     if var=="pm1" or var=="pm25" or var=="pm10":
-        vmin = np.percentile(input[var, :, :], 0)
-        vmax = np.percentile(input[var, :, :], 80)
+        vmin = np.percentile(input[var, 179:388, 720:1026], 0)
+        vmax = np.percentile(input[var, 179:388, 720:1026], 80)
     else:
-        vmin = input[var, :, :].min()
-        vmax = input[var, :, :].max()
+        vmin = input[var, 179:388, 720:1026].min()
+        vmax = input[var, 179:388, 720:1026].max()
 
     ax1 = fig.add_subplot(151)
     plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
@@ -133,17 +133,17 @@ def visualize_surface(output, target, input, var, step, path, cfg):
     ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
-    plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plot3 = ax3.imshow(target[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
     ax3.title.set_text('gt')
 
     ax4 = fig.add_subplot(154)
-    plot4 = ax4.imshow(output[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+    plot4 = ax4.imshow(output[var, 179:388, 720:1026], cmap="RdBu", vmin=vmin, vmax=vmax)
     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
     ax4.title.set_text('pred')
 
     ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
+    plot5 = ax5.imshow(output[var, 179:388, 720:1026] - target[var, 179:388, 720:1026], cmap="RdBu")
     plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
     ax5.title.set_text('bias')
 
