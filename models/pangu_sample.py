@@ -517,18 +517,19 @@ def test(test_loader, model, device, res_path, cfg):
         png_path = os.path.join(res_path, "png")
         utils.mkdirs(png_path)
 
-        utils.visualize(output_test.detach().cpu().squeeze(),
-                        target_test.detach().cpu().squeeze(), 
-                        input_test.detach().cpu().squeeze(),
-                        var='t',
-                        z = 2,
-                        step=target_time, 
-                        path=png_path,
-                        cfg=cfg
-                        )
         
         if cfg.GLOBAL.MENA_crop:
         #['msl', 'u','v','t2m']
+            utils.visualize(output_test.detach().cpu().squeeze(),
+                    target_test.detach().cpu().squeeze(), 
+                    input_test.detach().cpu().squeeze(),
+                    var='t',
+                    z = 2,
+                    step=target_time, 
+                    path=png_path,
+                    cfg=cfg
+                    )
+            
             # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
             #                         target_surface_test.detach().cpu().squeeze(),
             #                         input_surface_test.detach().cpu().squeeze(),
@@ -574,7 +575,17 @@ def test(test_loader, model, device, res_path, cfg):
                                     cfg=cfg
                                     )
 
-        else:            
+        else:
+            utils.visualize_orig(output_test.detach().cpu().squeeze(),
+                    target_test.detach().cpu().squeeze(), 
+                    input_test.detach().cpu().squeeze(),
+                    var='t',
+                    z = 2,
+                    step=target_time, 
+                    path=png_path,
+                    cfg=cfg
+                    )
+                        
             utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
                                 target_surface_test.detach().cpu().squeeze(),
                                 input_surface_test.detach().cpu().squeeze(),

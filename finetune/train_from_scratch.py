@@ -30,8 +30,8 @@ from tensorboardX import SummaryWriter
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config4', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Test', help='Name of the output directory')
-parser.add_argument('--distri', default=False, help='Doing the distributed training')
+parser.add_argument('--output', type=str, default='Full_finetune_0520', help='Name of the output directory')
+parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -253,7 +253,7 @@ if cfg.GLOBAL.START == "scratch":
             model._output_layer.conv_surface.bias = nn.Parameter(output_bias)
 
 
-if cfg.GLOBAL.START == "checkpoint":
+elif cfg.GLOBAL.START == "checkpoint":
   checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False, map_location='cuda')
   state_dict = checkpoint['model']
   #
@@ -338,6 +338,20 @@ model = train(model,
               cfg = cfg,
               rank=local_rank)
 
+peft_model = train(
+        peft_model,
+        train_loader=train_dataloader,
+        val_loader=val_dataloader,
+        optimizer=optimizer,
+        # lr_scheduler=lr_scheduler,
+        res_path = output_path,
+        device=device,
+        writer=writer, 
+        logger = logger,
+        start_epoch=start_epoch,
+        cfg = cfg,
+        rank=local_rank
+        )
 #
 ###########################################################################################
 ################################### Testing  ##############################################

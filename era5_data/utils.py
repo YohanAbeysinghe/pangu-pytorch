@@ -161,75 +161,74 @@ def visualize_surface_mena(output, target, input, var, step, path, cfg):
     plt.close(fig)
 
 
-def visualize_surface(output, target, input, var, step, path, cfg):
-    variables = cfg.ERA5_SURFACE_VARIABLES
-    var = variables.index(var)
-    fig = plt.figure(figsize=(20, 2))
+# def visualize_surface(output, target, input, var, step, path, cfg):
+#     variables = cfg.ERA5_SURFACE_VARIABLES
+#     var = variables.index(var)
+#     fig = plt.figure(figsize=(20, 2))
 
-    # Ensure all inputs are NumPy arrays
-    # Compute vmin and vmax across all relevant data for consistent color scaling
-    output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
-    target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
-    input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
-
-
-    vmax = max(output.max(), target.max(), input.max())
-    vmin = min(output.min(), target.min(), input.min())
-
-    # Use percentiles for robust color scaling, which ignores extreme outliers
-    # if var==4 or var==5 or var==6:
-    #     vmin = np.percentile(input[var, :, :], 0)
-    #     vmax = np.percentile(input[var, :, :], 80)
-    # else:
-    #     vmin = input[var, :, :].min()
-    #     vmax = input[var, :, :].max()
-
-    ax1 = fig.add_subplot(151)
-    plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
-    ax1.title.set_text('input')
+#     # Ensure all inputs are NumPy arrays
+#     # Compute vmin and vmax across all relevant data for consistent color scaling
+#     output = output.detach().cpu().numpy() if not isinstance(output, np.ndarray) else output
+#     target = target.detach().cpu().numpy() if not isinstance(target, np.ndarray) else target
+#     input = input.detach().cpu().numpy() if not isinstance(input, np.ndarray) else input
 
 
-    ax3 = fig.add_subplot(152)
-    plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
-    ax3.title.set_text('gt')
+#     vmax = max(output.max(), target.max(), input.max())
+#     vmin = min(output.min(), target.min(), input.min())
 
-    ax4 = fig.add_subplot(153)
-    plot4 = ax4.imshow(output[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
-    ax4.title.set_text('pred')
+#     # Use percentiles for robust color scaling, which ignores extreme outliers
+#     # if var==4 or var==5 or var==6:
+#     #     vmin = np.percentile(input[var, :, :], 0)
+#     #     vmax = np.percentile(input[var, :, :], 80)
+#     # else:
+#     #     vmin = input[var, :, :].min()
+#     #     vmax = input[var, :, :].max()
 
-    ax5 = fig.add_subplot(154)
-    plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
-    plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
-    ax5.title.set_text('bias')
+#     ax1 = fig.add_subplot(151)
+#     plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+#     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
+#     ax1.title.set_text('input')
 
-    plt.tight_layout()
-    plt.savefig(fname=os.path.join(path, '{}_{}'.format(step, variables[var])))
-    plt.close(fig)
+
+#     ax3 = fig.add_subplot(152)
+#     plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+#     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
+#     ax3.title.set_text('gt')
+
+#     ax4 = fig.add_subplot(153)
+#     plot4 = ax4.imshow(output[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
+#     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
+#     ax4.title.set_text('pred')
+
+#     ax5 = fig.add_subplot(154)
+#     plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
+#     plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
+#     ax5.title.set_text('bias')
+
+#     plt.tight_layout()
+#     plt.savefig(fname=os.path.join(path, '{}_{}'.format(step, variables[var])))
+#     plt.close(fig)
 
 
 def visuailze_surface_orig(output, target, input, var, step, path, cfg):
     variables = cfg.ERA5_SURFACE_VARIABLES
     var = variables.index(var)
     fig = plt.figure(figsize=(16, 2))
-    ax1 = fig.add_subplot(143)
-    # ? to do?
-    # levels = np.linspace(93000, 105000, 9)
-    plot1 = ax1.imshow(output[var, :, :], cmap="RdBu")  # , levels = levels, extend = 'min')
-    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
-    ax1.title.set_text('pred')
+
+    ax3 = fig.add_subplot(141)
+    plot3 = ax3.imshow(input[var, :, :], cmap="RdBu")
+    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
+    ax3.title.set_text('input')
 
     ax2 = fig.add_subplot(142)
     plot2 = ax2.imshow(target[var, :, :], cmap="RdBu")
     plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
     ax2.title.set_text('gt')
 
-    ax3 = fig.add_subplot(141)
-    plot3 = ax3.imshow(input[var, :, :], cmap="RdBu")
-    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
-    ax3.title.set_text('input')
+    ax1 = fig.add_subplot(143)
+    plot1 = ax1.imshow(output[var, :, :], cmap="RdBu")  # , levels = levels, extend = 'min')
+    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
+    ax1.title.set_text('pred')
 
     ax4 = fig.add_subplot(144)
     plot4 = ax4.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
@@ -240,6 +239,34 @@ def visuailze_surface_orig(output, target, input, var, step, path, cfg):
     plt.savefig(fname=os.path.join(path, '{}_{}'.format(step, variables[var])))
     plt.close(fig)
 
+def visualize_orig(output, target, input, var, z, step, path, cfg):
+    variables = cfg.ERA5_UPPER_VARIABLES
+    var = variables.index(var)
+    fig = plt.figure(figsize=(16, 2))
+
+    ax3 = fig.add_subplot(141)
+    plot3 = ax3.imshow(input[var, z, :, :], cmap="RdBu")
+    plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
+    ax3.title.set_text('input')
+
+    ax2 = fig.add_subplot(142)
+    plot2 = ax2.imshow(target[var, z, :, :], cmap="RdBu")
+    plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
+    ax2.title.set_text('gt')
+
+    ax1 = fig.add_subplot(143)
+    plot1 = ax1.imshow(output[var, z, :, :], cmap="RdBu")  # , levels = levels, extend = 'min')
+    plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
+    ax1.title.set_text('pred')
+
+    ax4 = fig.add_subplot(144)
+    plot4 = ax4.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
+    plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
+    ax4.title.set_text('bias')
+
+    plt.tight_layout()
+    plt.savefig(fname=os.path.join(path, '{}_{}_Z{}'.format(step, variables[var], z)))
+    plt.close(fig)
 
 
 def mkdir(path):
