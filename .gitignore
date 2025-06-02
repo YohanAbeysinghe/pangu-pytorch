@@ -1,0 +1,8 @@
+era5_data/__pycache__/
+configs/__pycache__/
+loss/__pycache__/
+models/__pycache__/
+wandb/
+.cdsapirc
+notebooks/archive/output.nc
+notebooks/archive/surface_201901.nc

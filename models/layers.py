@@ -1,6 +1,6 @@
 # The pseudocode can be implemented using deep learning libraries, e.g., Pytorch and Tensorflow or other high-level APIs
 import sys
-sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
+sys.path.append("/l/users/fahad.khan/akhtar/Pangu/pangu-pytorch")
 from torch import nn
 import torch
 import torch.utils.checkpoint as checkpoint
@@ -18,10 +18,12 @@ class PatchEmbedding_pretrain(nn.Module):
     self.conv = nn.Conv1d(in_channels=192, out_channels=dim, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=112, out_channels=dim, kernel_size=1, stride=1)
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
       self.conv_surface = nn.Conv1d(in_channels=128, out_channels=dim, kernel_size=1, stride=1)
     if cfg.GLOBAL.MODEL == "All_pm":
       self.conv_surface = nn.Conv1d(in_channels=160, out_channels=dim, kernel_size=1, stride=1)
+    if cfg.GLOBAL.MODEL == "Only_pm":
+      self.conv_surface = nn.Conv1d(in_channels=96, out_channels=dim, kernel_size=1, stride=1)
     self.window_size = (2, 6, 12)  # Z,H,W
     # self.Pad2D = nn.ConstantPad2d((0, 0, 0, 3), 0)
     # self.Pad3D = nn.ConstantPad3d((0, 0, 0, 3, 0, 1),0)
@@ -48,13 +50,10 @@ class PatchEmbedding_pretrain(nn.Module):
     # input:(B, N, Z, H, W) input_surface(B,N,H,W)
     # Zero-pad the input
     cfg = self.cfg # @yohan
-    self.surface_mean, self.surface_std, self.upper_mean, self.upper_std = statistics[0], statistics[1], statistics[
-      2], \
-      statistics[3]
+    self.surface_mean, self.surface_std, self.upper_mean, self.upper_std = statistics[0], statistics[1], statistics[2], statistics[3]
     self.constant_masks = maps
 
-    input_surface = input_surface.reshape(input_surface.shape[0], input_surface.shape[1], 1, input_surface.shape[-2],
-                                          input_surface.shape[-1])
+    input_surface = input_surface.reshape(input_surface.shape[0], input_surface.shape[1], 1, input_surface.shape[-2],input_surface.shape[-1])
     input_surface = torch.permute(input_surface, (0, 2, 3, 4, 1))  # [1,1,721,1440,4]
     input_surface = (input_surface - self.surface_mean) / self.surface_std
 
@@ -73,7 +72,7 @@ class PatchEmbedding_pretrain(nn.Module):
     input_surface = torch.permute(input_surface, (0, 1, 3, 5, 2, 4))  # (1,7,4,4,181,360)
     input_surface = input_surface.reshape(input_surface.shape[0],
                                           input_surface.shape[1] * input_surface.shape[2] * input_surface.shape[3],
-                                          -1)
+                                          -1)    # Only PM - torch.Size([1, 96, 65160])  All PM - ([1, 160, 65160])
     input_surface = self.conv_surface(input_surface)  # (1,192,65160)
 
 
@@ -529,10 +528,12 @@ class PatchRecovery_pretrain(nn.Module):
 
     if cfg.GLOBAL.MODEL == "original":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=64, kernel_size=1, stride=1)
-    if cfg.GLOBAL.MODEL == "pm25":
+    if cfg.GLOBAL.MODEL == "pm1":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=80, kernel_size=1, stride=1) #@Yohan. Output channel size increased 64 --> 80 because of new variable.
     if cfg.GLOBAL.MODEL == "All_pm":
       self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=112, kernel_size=1, stride=1) 
+    if cfg.GLOBAL.MODEL == "Only_pm":
+      self.conv_surface = nn.Conv1d(in_channels=dim, out_channels=48, kernel_size=1, stride=1) 
 
 
   def forward(self, x, Z, H, W):
@@ -572,7 +573,7 @@ class PatchRecovery_pretrain(nn.Module):
       # output_surface = output_surface * self.surface_std + self.surface_mean
       output_surface = output_surface.view(output_surface.shape[0], 4, 721, 1440)
 
-    if self.cfg.GLOBAL.MODEL == "pm25":
+    if self.cfg.GLOBAL.MODEL == "pm1":
       output_surface = output_surface.view(output_surface.shape[0], 5, self.patch_size[1], self.patch_size[2], H, W)
       output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
       output_surface = output_surface.reshape(output_surface.shape[0], 5, 724, 1440)
@@ -589,5 +590,15 @@ class PatchRecovery_pretrain(nn.Module):
       output_surface = output_surface.view(output_surface.shape[0], 7, 1, 721, 1440)
       # output_surface = output_surface * self.surface_std + self.surface_mean
       output_surface = output_surface.view(output_surface.shape[0], 7, 721, 1440)
+
+    if self.cfg.GLOBAL.MODEL == "Only_pm":
+      output_surface = output_surface.view(output_surface.shape[0], 3, self.patch_size[1], self.patch_size[2], H, W)
+      output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
+      output_surface = output_surface.reshape(output_surface.shape[0], 3, 724, 1440)
+      output_surface = output_surface[:, :, height_slice, :]
+      output_surface = output_surface.view(output_surface.shape[0], 3, 1, 721, 1440)
+      # output_surface = output_surface * self.surface_std + self.surface_mean
+      output_surface = output_surface.view(output_surface.shape[0], 3, 721, 1440)
+
 
     return output, output_surface

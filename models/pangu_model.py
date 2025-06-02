@@ -1,5 +1,7 @@
 import sys
-sys.path.append("/home/yohan.abeysinghe/Pangu/pangu-pytorch")
+sys.path.append("/l/users/fahad.khan/akhtar/Pangu/pangu-pytorch")
+
+
 from torch import nn
 import torch
 from models.layers import *
@@ -100,4 +102,3 @@ if __name__ == '__main__':
     output, output_surface = model(x_upper, x_surface)
     # print(output)
     print(output.shape)
-   
