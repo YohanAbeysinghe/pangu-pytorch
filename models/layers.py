@@ -63,6 +63,9 @@ class PatchEmbedding_pretrain(nn.Module):
 
     input_surface = self.check_image_size_2d(input_surface, cfg=cfg)
 
+    # if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+    #   self.constant_masks = self.constant_masks[:, 175:392, 718:1030]
+
     input_surface = torch.cat(
       (input_surface, self.constant_masks), dim=1,
       out=None)
@@ -98,10 +101,6 @@ class PatchEmbedding_pretrain(nn.Module):
     x = torch.cat((input_surface, input), dim=2)
     x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
     x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]
-
-
-
-
 
     return x
 
@@ -197,6 +196,12 @@ class EarthSpecificBlock(nn.Module):
   def forward(self, x, Z, H, W, roll):
     cfg = self.cfg # @Yohan
     # Save the shortcut for skip-connection
+
+    ## @Yohan.
+    # x = x[:, :20640,:]
+    # H = 43
+    # W = 60
+
     shortcut = x #torch.Size([1, 521280, 192]) -- ([1, 131040, 384])
 
     # Reshape input to three dimensions to calculate window attention
@@ -230,16 +235,16 @@ class EarthSpecificBlock(nn.Module):
     # Reorganize data to calculate window attention
     x_window = x.view(x.shape[0], x.shape[1]//self.window_size[0], self.window_size[0], x.shape[2] // self.window_size[1], self.window_size[1], x.shape[3] // self.window_size[2], self.window_size[2], x.shape[-1])
 
-    x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #1,30,4,31,2,6,12,192
+    x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #[1,30,4,31,2,6,12,192]  Current-[1,5,4,8,2,6,12,192]
     x_window = x_window.reshape(x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
-    #x_window (30,124,2,6,12,192)
+    #x_window (30,124,2,6,12,192) --> Current-[5,32,2,6,12,192]
     x_window = x_window.contiguous().view(x_window.shape[0], x_window.shape[1], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
     # Apply 3D window attention with Earth-Specific bias
-    attn_windows = self.attention(x_window, mask)#？x_window:([30, 124, 144, 192]) -[15, 64, 144, 384])
+    attn_windows = self.attention(x_window, mask)#？x_window:([30, 124, 144, 192]) -[15, 64, 144, 384])  Current x_window [5, 32, 144, 192]   
 
     # Reorganize data to original shapes
     # x_shifted = attn_windows.view(-1, Z // self.window_size[0], H // self.window_size[1] + 1, W //self.window_size[2], self.window_size[0], self.window_size[1], self.window_size[2], x_window.shape[-1])
-    x_shifted = attn_windows.view(1, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192
+    x_shifted = attn_windows.view(1, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192  ---> Current [1, 5, 4, 8, 2, 6, 12, 192]
     #x_window torch.Size([30, 124, 144, 192]) -[15, 64, 144, 384])
     # x_shifted = torch.permute(x_shifted, (0, 1, 4, 2, 5, 3, 6, 7)) 
     x_shifted = torch.permute(x_shifted, (0, 2, 4, 3, 5, 1, 6, 7))
@@ -376,7 +381,7 @@ class EarthAttention3D(nn.Module):
   def forward(self, x, mask): 
     cfg = self.cfg #Yohan
     # Record the original shape of the input
-    original_shape = x.shape #([30, 124, 144, 576]) swinir B_, N, C = x.shape#([30, 124, 144, 192])
+    original_shape = x.shape #([30, 124, 144, 576]) swinir B_, N, C = x.shape#([30, 124, 144, 192])    # Current val [5, 32, 144, 192]
     # Linear layer to create query, key and value
 
     x = self.linear1(x)#([30, 124, 144, 576])
@@ -408,7 +413,10 @@ class EarthAttention3D(nn.Module):
     # EarthSpecificBias = EarthSpecificBias.unsqueeze(0)# ->[1,124,6,144, 144]
     EarthSpecificBias = self.earth_specific_bias
 
-      
+    # @Yohan
+    # EarthSpecificBias = EarthSpecificBias[:5, :32, :, :, :]
+
+
     # Add the Earth-Specific bias to the attention matrix
     attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
     # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
@@ -434,7 +442,7 @@ class EarthAttention3D(nn.Module):
 
     # Linear layer to post-process operated tensor
     x = self.linear2(x)
-    x = self.dropout(x) #torch.Size([30, 124, 144, 192])
+    x = self.dropout(x) #torch.Size([30, 124, 144, 192])  ---> Current [5, 32, 144, 192]
   
     return x
   

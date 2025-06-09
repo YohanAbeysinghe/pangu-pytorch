@@ -212,8 +212,33 @@ class NetCDFDataset(data.Dataset):
                                       surface_pm10[np.newaxis, ...]),
                                       axis=0)
             assert surface.shape == (3, 721, 1440)
-        return upper, surface
 
+
+        if self.cfg.GLOBAL.STYLE == 'padding':
+            # Create masks for the spatial crop
+            surface_mask = np.zeros_like(surface, dtype=bool)
+            surface_mask[:, 175:392, 718:1030] = True
+
+            upper_mask = np.zeros_like(upper, dtype=bool)
+            upper_mask[:, :, 175:392, 718:1030] = True
+
+            # Zero out all values outside the crop (overwrite surface and upper)
+            surface_temp = np.zeros_like(surface)
+            surface_temp[surface_mask] = surface[surface_mask]
+            surface = surface_temp
+
+            upper_temp = np.zeros_like(upper)
+            upper_temp[upper_mask] = upper[upper_mask]
+            upper = upper_temp
+
+
+        if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+            # Create masks for the spatial crop
+            # Just crop the region of interest instead of masking and zeroing
+            surface = surface[:, 175:392, 718:1030]                   # shape: (7, 217, 312)
+            upper = upper[:, :, 175:392, 718:1030]                    # shape: (5, 13, 217, 312)
+
+        return upper, surface
 
 
 
@@ -314,131 +339,240 @@ class NetCDFDataset(data.Dataset):
         return self.__class__.__name__
 
 
+# def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
+#     """
+#     :return:1, 5, 13, 1, 1
+#     """
+#     if cfg.GLOBAL.MODEL == "original":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+#         surface_mean = surface_mean.view(1, 4, 1, 1)
+#         surface_std = surface_std.view(1, 4, 1, 1)
+
+#     if cfg.GLOBAL.MODEL == "pm1":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9)) # @Yohan. Adding a new mean pm.
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8)) # @Yohan. Adding a new std for pm.
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+#         surface_mean = surface_mean.view(1, 5, 1, 1) # @Yohan
+#         surface_std = surface_std.view(1, 5, 1, 1) # @Yohan
+
+#     if cfg.GLOBAL.MODEL == "All_pm":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9))
+#         surface_mean = np.append(surface_mean, np.float32(1.0949457000e-8)) 
+#         surface_mean = np.append(surface_mean, np.float32(1.7928459000e-8)) 
+
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8))
+#         surface_std = np.append(surface_std, np.float32(2.7642354000e-8))
+#         surface_std = np.append(surface_std, np.float32(4.1681563000e-8))
+
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+#         surface_mean = surface_mean.view(1, 7, 1, 1) # @Yohan
+#         surface_std = surface_std.view(1, 7, 1, 1) # @Yohan
+
+#     if cfg.GLOBAL.MODEL == "Only_pm":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9))
+#         surface_mean = np.append(surface_mean, np.float32(1.0949457000e-8)) 
+#         surface_mean = np.append(surface_mean, np.float32(1.7928459000e-8))
+
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8))
+#         surface_std = np.append(surface_std, np.float32(2.7642354000e-8))
+#         surface_std = np.append(surface_std, np.float32(4.1681563000e-8))
+
+#         # Keep only the last 3 elements (the PM values)
+#         surface_mean = torch.from_numpy(surface_mean[-3:])
+#         surface_std = torch.from_numpy(surface_std[-3:])
+
+#         # Reshape to match model expectations
+#         surface_mean = surface_mean.view(1, 3, 1, 1)
+#         surface_std = surface_std.view(1, 3, 1, 1)
+
+
+#     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)  # (13,1,1,5)
+#     upper_mean = upper_mean[::-1, :, :, :].copy()
+#     upper_mean = np.transpose(upper_mean, (1, 3, 0, 2))  # (1,5,13, 1)
+#     upper_mean = torch.from_numpy(upper_mean)
+
+#     upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
+#     upper_std = upper_std[::-1, :, :, :].copy()
+#     upper_std = np.transpose(upper_std, (1, 3, 0, 2))
+#     upper_std = torch.from_numpy(upper_std)
+
+#     return surface_mean.to(device), surface_std.to(device), upper_mean[..., None].to(device), upper_std[..., None].to(device)
+
 def weatherStatistics_output(filepath=None, device="cpu", cfg=None):
     """
-    :return:1, 5, 13, 1, 1
+    Load and prepare surface and upper-air weather statistics for normalization.
+    Returns tensors shaped for broadcasting in the model.
     """
-    if cfg.GLOBAL.MODEL == "original":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
-        surface_mean = surface_mean.view(1, 4, 1, 1)
-        surface_std = surface_std.view(1, 4, 1, 1)
 
-    if cfg.GLOBAL.MODEL == "pm1":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909)) # @Yohan. Adding a new mean pm.
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859)) # @Yohan. Adding a new std for pm.
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
-        surface_mean = surface_mean.view(1, 5, 1, 1) # @Yohan
-        surface_std = surface_std.view(1, 5, 1, 1) # @Yohan
+    # Load surface statistics
+    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
 
-    if cfg.GLOBAL.MODEL == "All_pm":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909)) # @Yohan. Adding a new mean pm.
-        surface_mean = np.append(surface_mean, np.float32(1.015188377806453)) 
-        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764)) 
+    model_type = cfg.GLOBAL.MODEL
 
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859)) # @Yohan. Adding a new std for pm.
-        surface_std = np.append(surface_std, np.float32(2.1210791345538382))
-        surface_std = np.append(surface_std, np.float32(3.24056372846826))
+    # if model_type == "pm1":
+    #     surface_mean = np.append(surface_mean, 4.703309e-9)
+    #     surface_std = np.append(surface_std, 1.7588029e-8)
+    #     surface_mean = torch.from_numpy(surface_mean).view(1, 5, 1, 1)
+    #     surface_std = torch.from_numpy(surface_std).view(1, 5, 1, 1)
 
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
-        surface_mean = surface_mean.view(1, 7, 1, 1) # @Yohan
-        surface_std = surface_std.view(1, 7, 1, 1) # @Yohan
+    # elif model_type == "All_pm":
+    #     surface_mean = np.append(surface_mean, [4.703309e-9, 1.0949457e-8, 1.7928459e-8])
+    #     surface_std = np.append(surface_std, [1.7588029e-8, 2.7642354e-8, 4.1681563e-8])
+    #     surface_mean = torch.from_numpy(surface_mean).view(1, 7, 1, 1)
+    #     surface_std = torch.from_numpy(surface_std).view(1, 7, 1, 1)
 
-    if cfg.GLOBAL.MODEL == "Only_pm":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909))  # PM1
-        surface_mean = np.append(surface_mean, np.float32(1.015188377806453))  # PM2.5
-        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764)) # PM10
+    # elif model_type == "Only_pm":
+    #     surface_mean = np.append(surface_mean, [4.703309e-9, 1.0949457e-8, 1.7928459e-8])[-3:]
+    #     surface_std = np.append(surface_std, [1.7588029e-8, 2.7642354e-8, 4.1681563e-8])[-3:]
+    #     surface_mean = torch.from_numpy(surface_mean).view(1, 3, 1, 1)
+    #     surface_std = torch.from_numpy(surface_std).view(1, 3, 1, 1)
 
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859))   # PM1
-        surface_std = np.append(surface_std, np.float32(2.1210791345538382))   # PM2.5
-        surface_std = np.append(surface_std, np.float32(3.24056372846826))     # PM10
+    if model_type == "pm1":
+        surface_mean = np.append(surface_mean, 0.1006)
+        surface_std = np.append(surface_std, 0.0440)
+        surface_mean = torch.from_numpy(surface_mean).view(1, 5, 1, 1)
+        surface_std = torch.from_numpy(surface_std).view(1, 5, 1, 1)
 
-        # Keep only the last 3 elements (the PM values)
-        surface_mean = torch.from_numpy(surface_mean[-3:])
-        surface_std = torch.from_numpy(surface_std[-3:])
+    elif model_type == "All_pm":
+        surface_mean = np.append(surface_mean, [0.1006, 0.1249, 0.1351])
+        surface_std = np.append(surface_std, [0.0440, 0.0466, 0.0486])
+        surface_mean = torch.from_numpy(surface_mean).view(1, 7, 1, 1)
+        surface_std = torch.from_numpy(surface_std).view(1, 7, 1, 1)
 
-        # Reshape to match model expectations
-        surface_mean = surface_mean.view(1, 3, 1, 1)
-        surface_std = surface_std.view(1, 3, 1, 1)
+    elif model_type == "Only_pm":
+        surface_mean = np.append(surface_mean, [0.1006, 0.1249, 0.1351])[-3:]
+        surface_std = np.append(surface_std, [0.0440, 0.0466, 0.0486])[-3:]
+        surface_mean = torch.from_numpy(surface_mean).view(1, 3, 1, 1)
+        surface_std = torch.from_numpy(surface_std).view(1, 3, 1, 1)
 
 
-    upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)  # (13,1,1,5)
-    upper_mean = upper_mean[::-1, :, :, :].copy()
-    upper_mean = np.transpose(upper_mean, (1, 3, 0, 2))  # (1,5,13, 1)
-    upper_mean = torch.from_numpy(upper_mean)
+    else:  # original
+        surface_mean = torch.from_numpy(surface_mean).view(1, 4, 1, 1)
+        surface_std = torch.from_numpy(surface_std).view(1, 4, 1, 1)
 
-    upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
-    upper_std = upper_std[::-1, :, :, :].copy()
-    upper_std = np.transpose(upper_std, (1, 3, 0, 2))
-    upper_std = torch.from_numpy(upper_std)
+    # Load and reformat upper-level statistics (original shape: 13 x 1 x 1 x 5)
+    def load_and_process_upper_stat(name):
+        arr = np.load(os.path.join(filepath, f"upper_{name}.npy")).astype(np.float32)
+        arr = arr[::-1].copy()  # Reverse pressure level and remove negative strides
+        arr = np.transpose(arr, (1, 3, 0, 2))  # To (1, 5, 13, 1)
+        return torch.from_numpy(arr).unsqueeze(-1)  # To (1, 5, 13, 1, 1)
 
-    return surface_mean.to(device), surface_std.to(device), upper_mean[..., None].to(device), upper_std[..., None].to(device)
+    upper_mean = load_and_process_upper_stat("mean").to(device)
+    upper_std = load_and_process_upper_stat("std").to(device)
+
+    return surface_mean.to(device), surface_std.to(device), upper_mean, upper_std
+
+
+
+# def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
+#     """
+#     :return:13, 1, 1, 5
+#     """
+#     if cfg.GLOBAL.MODEL == "original":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+
+#     if cfg.GLOBAL.MODEL == "pm1":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9))
+
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8))
+
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+
+#     if cfg.GLOBAL.MODEL == "All_pm":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9)) # @Yohan. Adding a new mean pm.
+#         surface_mean = np.append(surface_mean, np.float32(1.0949457000e-8)) 
+#         surface_mean = np.append(surface_mean, np.float32(1.7928459000e-8)) 
+
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8)) # @Yohan. Adding a new std for pm.
+#         surface_std = np.append(surface_std, np.float32(2.7642354000e-8))
+#         surface_std = np.append(surface_std, np.float32(4.1681563000e-8))
+
+#         surface_mean = torch.from_numpy(surface_mean)
+#         surface_std = torch.from_numpy(surface_std)
+
+#     if cfg.GLOBAL.MODEL == "Only_pm":
+#         surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+#         surface_mean = np.append(surface_mean, np.float32(4.7033090000e-9)) # @Yohan. Adding a new mean pm.
+#         surface_mean = np.append(surface_mean, np.float32(1.0949457000e-8)) 
+#         surface_mean = np.append(surface_mean, np.float32(1.7928459000e-8)) 
+
+#         surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
+#         surface_std = np.append(surface_std, np.float32(1.7588029000e-8)) # @Yohan. Adding a new std for pm.
+#         surface_std = np.append(surface_std, np.float32(2.7642354000e-8))
+#         surface_std = np.append(surface_std, np.float32(4.1681563000e-8))
+
+#         surface_mean = torch.from_numpy(surface_mean[-3:])  # Only PMs
+#         surface_std = torch.from_numpy(surface_std[-3:])    # Only PMs
+
+#     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)
+#     upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
+#     upper_mean = torch.from_numpy(upper_mean)
+#     upper_std = torch.from_numpy(upper_std)
+
+#     return surface_mean.to(device), surface_std.to(device), upper_mean.to(device), upper_std.to(device)
 
 
 def weatherStatistics_input(filepath=None, device="cpu", cfg=None):
     """
-    :return:13, 1, 1, 5
+    Load mean and std statistics for surface and upper variables, adapting based on cfg.GLOBAL.MODEL.
+
+    Returns:
+        surface_mean, surface_std, upper_mean, upper_std: torch.Tensor each
     """
-    if cfg.GLOBAL.MODEL == "original":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
+    model_type = cfg.GLOBAL.MODEL
 
-    if cfg.GLOBAL.MODEL == "pm1":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909)) #Adding a new mean ndvi.
-
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859)) #Adding a new std for ndvi.
-
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
-
-    if cfg.GLOBAL.MODEL == "All_pm":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909)) # @Yohan. Adding a new mean pm.
-        surface_mean = np.append(surface_mean, np.float32(1.015188377806453)) 
-        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764)) 
-
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859)) # @Yohan. Adding a new std for pm.
-        surface_std = np.append(surface_std, np.float32(2.1210791345538382))
-        surface_std = np.append(surface_std, np.float32(3.24056372846826))
-
-        surface_mean = torch.from_numpy(surface_mean)
-        surface_std = torch.from_numpy(surface_std)
-
-    if cfg.GLOBAL.MODEL == "Only_pm":
-        surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
-        surface_mean = np.append(surface_mean, np.float32(4.245669149582909))  # PM1
-        surface_mean = np.append(surface_mean, np.float32(1.015188377806453))  # PM2.5
-        surface_mean = np.append(surface_mean, np.float32(1.6650929524075764)) # PM10
-
-        surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
-        surface_std = np.append(surface_std, np.float32(1.4735645592622859))   # PM1
-        surface_std = np.append(surface_std, np.float32(2.1210791345538382))   # PM2.5
-        surface_std = np.append(surface_std, np.float32(3.24056372846826))     # PM10
-
-        surface_mean = torch.from_numpy(surface_mean[-3:])  # Only PMs
-        surface_std = torch.from_numpy(surface_std[-3:])    # Only PMs
-
+    # Load surface and upper stats
+    surface_mean = np.load(os.path.join(filepath, "surface_mean.npy")).astype(np.float32)
+    surface_std = np.load(os.path.join(filepath, "surface_std.npy")).astype(np.float32)
     upper_mean = np.load(os.path.join(filepath, "upper_mean.npy")).astype(np.float32)
     upper_std = np.load(os.path.join(filepath, "upper_std.npy")).astype(np.float32)
-    upper_mean = torch.from_numpy(upper_mean)
-    upper_std = torch.from_numpy(upper_std)
 
-    return surface_mean.to(device), surface_std.to(device), upper_mean.to(device), upper_std.to(device)
+    # PM stats (high-precision constants)
+    # pm_means = np.array([4.703309e-9, 1.0949457e-8, 1.7928459e-8], dtype=np.float32)
+    # pm_stds = np.array([1.7588029e-8, 2.7642354e-8, 4.1681563e-8], dtype=np.float32)
+    pm_means = np.array([0.1006, 0.1249, 0.1351], dtype=np.float32)
+    pm_stds = np.array([0.0440, 0.0466, 0.0486], dtype=np.float32)
+
+    if model_type == "pm1":
+        surface_mean = np.append(surface_mean, pm_means[0])
+        surface_std = np.append(surface_std, pm_stds[0])
+
+    elif model_type == "All_pm":
+        surface_mean = np.append(surface_mean, pm_means)
+        surface_std = np.append(surface_std, pm_stds)
+
+    elif model_type == "Only_pm":
+        surface_mean = pm_means
+        surface_std = pm_stds
+
+    # Convert to tensors
+    surface_mean = torch.from_numpy(surface_mean).to(device)
+    surface_std = torch.from_numpy(surface_std).to(device)
+    upper_mean = torch.from_numpy(upper_mean).to(device)
+    upper_std = torch.from_numpy(upper_std).to(device)
+
+    return surface_mean, surface_std, upper_mean, upper_std
+
 
 
 def LoadConstantMask(filepath=None, device="cpu"):

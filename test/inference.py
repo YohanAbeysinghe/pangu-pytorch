@@ -78,7 +78,12 @@ def load_model_for_inference(cfg, output_path, device):
     # model.load_state_dict(torch.load(best_model_path, map_location=device))
 
     # Step 4: Load edited-layer weights from finetuned checkpoint
-    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/Full_train_5202/models/model_weights_1.pth"
+
+    # best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/Full_finetune_normalized_0602_1/models/model_weights_1.pth"
+
+    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/pretrained_model/pangu_weather_24_torch.pth"
+
+    best_model_path = best_model_path["model"]
     state_dict = torch.load(best_model_path, map_location=device)
 
 
@@ -108,7 +113,7 @@ def load_model_for_inference(cfg, output_path, device):
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config5', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Finetune_fromscratch_05201_inference', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
 parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 

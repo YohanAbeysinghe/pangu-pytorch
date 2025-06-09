@@ -60,6 +60,7 @@ class PanguModel(nn.Module):
     x = self._input_layer(input, input_surface, statistics, maps, const_h) #([1, 521280, 192]) [B, spatial, C]
 
     # Encoder, composed of two layers
+    # x = ([1, 521280, 192])
     # Layer 1, shape (8, 360, 181, C), C = 192 as in the original paper
     
     x = self.layers[0](x, 8, 181, 360)

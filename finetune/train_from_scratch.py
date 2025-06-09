@@ -29,9 +29,9 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config4', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Full_finetune_0520', help='Name of the output directory')
-parser.add_argument('--distri', default=True, help='Doing the distributed training')
+parser.add_argument('--config', type=str, default='config6', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
+parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -202,8 +202,8 @@ if local_rank == 0:
         "start_time": cfg.PG.TRAIN.START_TIME,
         "end_time": cfg.PG.TRAIN.END_TIME,
         "output_path": output_path,
-        "pm2.5_weightage": cfg.PG.TRAIN.SURFACE_WEIGHTS[4],
-        "Law_rank": cfg.PG.TRAIN.Low_Rank
+        # "pm2.5_weightage": cfg.PG.TRAIN.SURFACE_WEIGHTS[4],
+        "Law_rank": cfg.PG.TRAIN.LOW_RANK,
         # "Model": cfg.PG.GLOBAL.MODEL,
         # "Loss": cfg.GLOBAL.LOSS,
         # "start": cfg.GLOBAL.START
@@ -338,36 +338,36 @@ model = train(model,
               cfg = cfg,
               rank=local_rank)
 
-peft_model = train(
-        peft_model,
-        train_loader=train_dataloader,
-        val_loader=val_dataloader,
-        optimizer=optimizer,
-        # lr_scheduler=lr_scheduler,
-        res_path = output_path,
-        device=device,
-        writer=writer, 
-        logger = logger,
-        start_epoch=start_epoch,
-        cfg = cfg,
-        rank=local_rank
-        )
+# peft_model = train(
+#         peft_model,
+#         train_loader=train_dataloader,
+#         val_loader=val_dataloader,
+#         optimizer=optimizer,
+#         # lr_scheduler=lr_scheduler,
+#         res_path = output_path,
+#         device=device,
+#         writer=writer, 
+#         logger = logger,
+#         start_epoch=start_epoch,
+#         cfg = cfg,
+#         rank=local_rank
+#         )
 #
 ###########################################################################################
 ################################### Testing  ##############################################
 ###########################################################################################
 #
-best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
-                        map_location='cuda:0',
-                        weights_only=False)
+# best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
+#                         map_location='cuda:0',
+#                         weights_only=False)
 
-logger.info("Begin testing...")
+# logger.info("Begin testing...")
 
-test(test_loader=test_dataloader,
-     model=best_model,
-     device=device,
-     res_path=output_path,
-     cfg = cfg)
+# test(test_loader=test_dataloader,
+#      model=best_model,
+#      device=device,
+#      res_path=output_path,
+#      cfg = cfg)
 #
 ###########################################################################################
 ###########################################################################################

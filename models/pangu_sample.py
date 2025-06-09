@@ -61,13 +61,11 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
             # /with torch.cuda.amp.autocast():
             model.train()
 
+            #Log scaling
             if cfg.GLOBAL.MODEL == 'All_pm':
-                input_surface[:, 4:7, :, :] *= 1e9
-                target_surface[:, 4:7, :, :] *= 1e9
-
-            elif cfg.GLOBAL.MODEL == 'Only_pm':
-                input_surface[:, 0:3, :, :] *= 1e9
-                target_surface[:, 0:3, :, :] *= 1e9
+                scale = torch.log(torch.tensor(1e20))
+                input_surface[:, 4:, :, :] = ((torch.log(torch.maximum(input_surface[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
+                target_surface[:, 4:, :, :] = ((torch.log(torch.maximum(target_surface[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
 
             # Note the input and target need to be normalized (done within the function)
             # Call the model and get the output
@@ -89,7 +87,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 loss_surface = criterion(output_surface, target_surface)
 
                 # Cropping into a slightly larger region than MENA.
-                if cfg.GLOBAL.MENA_crop:
+                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
                     # loss_surface = loss_surface[:, :, 179:388, 720:1026]
                     loss_surface = loss_surface[:, :, 175:392, 718:1030]
 
@@ -98,7 +96,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 ############################Upper MSE Loss###########################
 
                 loss_upper = criterion(output, target)
-                if cfg.GLOBAL.MENA_crop:
+                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
                     # loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
                     loss_upper = loss_upper[:, :, :, 175:392, 718:1030]
 
@@ -231,7 +229,8 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 }
                 torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
                 torch.save(model.module.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
-                model.module.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                if cfg.GLOBAL.LORA:
+                    model.module.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
 
             else:
                 save_file = {"model": model.state_dict(),
@@ -239,7 +238,8 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                             "epoch": i}
                 torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
                 torch.save(model.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
-                model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                if cfg.GLOBAL.LORA:
+                    model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
 
         # Begin to validate
         if i % cfg.PG.VAL.INTERVAL == 0:
@@ -263,8 +263,12 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                     
                     input_val, input_surface_val, target_val, target_surface_val, periods_val = val_data
 
-                    input_surface_val[:, 4, :, :] = input_surface_val[:, 4, :, :]* 1e9
-                    target_surface_val[:, 4, :, :] = target_surface_val[:, 4, :, :]* 1e9  
+                    if cfg.GLOBAL.MODEL == 'All_pm':
+                        #Log scaling
+                        scale = torch.log(torch.tensor(1e20))
+                        input_surface_val[:, 4:, :, :] = ((torch.log(torch.maximum(input_surface_val[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
+                        target_surface_val[:, 4:, :, :] = ((torch.log(torch.maximum(target_surface_val[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
+
 
                     input_val_raw, input_surface_val_raw = input_val, input_surface_val
                     input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
@@ -314,29 +318,30 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                                                                             aux_constants['weather_statistics_last'])
 
 
+
+
                 if cfg.GLOBAL.MODEL == 'All_pm':
-                    input_surface_val[:, 4:7, :, :] /= 1e9
-                    target_surface_val[:, 4:7, :, :] /= 1e9
-                    output_surface_val[:, 4:7, :, :] /= 1e9
-
-                elif cfg.GLOBAL.MODEL == 'Only_pm':
-                    input_surface_val[:, 0:3, :, :] /= 1e9
-                    target_surface_val[:, 0:3, :, :] /= 1e9
-                    output_surface_val[:, 0:3, :, :] /= 1e9
+                    #Log scaling
+                    scale = torch.log(torch.tensor(1e20))
+                    input_surface_val[:, 4:, :, :] = torch.exp(input_surface_val[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))
+                    target_surface_val[:, 4:, :, :] = torch.exp(target_surface_val[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))   
+                    output_surface_val[:, 4:, :, :] = torch.exp(output_surface_val[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))
 
 
-                utils.visualize(
-                    output_val.detach().cpu().squeeze(),
-                    target_val.detach().cpu().squeeze(),
-                    input_val_raw.squeeze(),
-                    var='u',
-                    z=12,
-                    step=i,
-                    path=png_path,
-                    cfg=cfg
-                    )
+
                 
-                if cfg.GLOBAL.MENA_crop:
+                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
+                    utils.visualize_mena(
+                        output_val.detach().cpu().squeeze(),
+                        target_val.detach().cpu().squeeze(),
+                        input_val_raw.squeeze(),
+                        var='u',
+                        z=12,
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+                
                     utils.visualize_surface_mena(
                         output_surface_val.detach().cpu().squeeze(),
                         target_surface_val.detach().cpu().squeeze(),
@@ -376,8 +381,31 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                         path=png_path,
                         cfg=cfg
                         )
-                elif cfg.GLOBAL.MENA_crop:
-                    utils.visualize_surface(
+                    
+                else:
+                    utils.visualize_orig(
+                        output_val.detach().cpu().squeeze(),
+                        target_val.detach().cpu().squeeze(),
+                        input_val_raw.squeeze(),
+                        var='u',
+                        z=12,
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+
+                    utils.visuailze_surface_orig(
+                        output_val.detach().cpu().squeeze(),
+                        target_val.detach().cpu().squeeze(),
+                        input_val_raw.squeeze(),
+                        var='u',
+                        z=12,
+                        step=i,
+                        path=png_path,
+                        cfg=cfg
+                        )
+
+                    utils.visuailze_surface_orig(
                         output_surface_val.detach().cpu().squeeze(),
                         target_surface_val.detach().cpu().squeeze(),
                         input_surface_val.squeeze(),
@@ -387,27 +415,17 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                         cfg=cfg
                         )
 
-                    utils.visualize_surface(
+                    utils.visuailze_surface_orig(
                         output_surface_val.detach().cpu().squeeze(),
                         target_surface_val.detach().cpu().squeeze(),
                         input_surface_val.squeeze(),
-                        var='pm1',
-                        step=i,
-                        path=png_path,
-                        cfg=cfg
-                        )
-                
-                    utils.visualize_surface(
-                        output_surface_val.detach().cpu().squeeze(),
-                        target_surface_val.detach().cpu().squeeze(),
-                        input_surface_val.squeeze(),
-                        var='pm25',
+                        var='pm2p5',
                         step=i,
                         path=png_path,
                         cfg=cfg
                         )
                     
-                    utils.visualize_surface(
+                    utils.visuailze_surface_orig(
                         output_surface_val.detach().cpu().squeeze(),
                         target_surface_val.detach().cpu().squeeze(),
                         input_surface_val.squeeze(),
@@ -484,13 +502,12 @@ def test(test_loader, model, device, res_path, cfg):
         input_test, input_surface_test, target_test, target_surface_test = input_test.to(device), input_surface_test.to(device), target_test.to(device), target_surface_test.to(device)
         model.eval()
 
-        if cfg.GLOBAL.MODEL == 'All_pm':
-            input_surface_test[:, 4:7, :, :] *= 1e9
-            target_surface_test[:, 4:7, :, :] *= 1e9
 
-        elif cfg.GLOBAL.MODEL == 'Only_pm':
-            input_surface_test[:, 0:3, :, :] *= 1e9
-            target_surface_test[:, 0:3, :, :] *= 1e9
+        if cfg.GLOBAL.MODEL == 'All_pm':
+            #Log scaling
+            scale = torch.log(torch.tensor(1e20))
+            input_surface_test[:, 4:, :, :] = ((torch.log(torch.maximum(input_surface_test[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
+            target_surface_test[:, 4:, :, :] = ((torch.log(torch.maximum(target_surface_test[:, 4:, :, :], torch.tensor(1e-11))) - torch.log(torch.tensor(1e-11)))/ scale)
 
 
         # Inference
@@ -503,12 +520,11 @@ def test(test_loader, model, device, res_path, cfg):
         
 
         if cfg.GLOBAL.MODEL == 'All_pm':
-            input_surface_test[:, 4:7, :, :] *= 1e9
-            target_surface_test[:, 4:7, :, :] *= 1e9
-
-        elif cfg.GLOBAL.MODEL == 'Only_pm':
-            input_surface_test[:, 0:3, :, :] *= 1e9
-            target_surface_test[:, 0:3, :, :] *= 1e9
+            #Log scaling
+            scale = torch.log(torch.tensor(1e20))
+            input_surface_test[:, 4:, :, :] = torch.exp(input_surface_test[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))
+            target_surface_test[:, 4:, :, :] = torch.exp(target_surface_test[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))   
+            output_surface_test[:, 4:, :, :] = torch.exp(output_surface_test[:, 4:, :, :] * scale + torch.log(torch.tensor(1e-11)))
 
 
         target_time = periods_test[1][batch_id]
@@ -530,37 +546,10 @@ def test(test_loader, model, device, res_path, cfg):
                     cfg=cfg
                     )
             
-            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-            #                         target_surface_test.detach().cpu().squeeze(),
-            #                         input_surface_test.detach().cpu().squeeze(),
-            #                         var='pm1',
-            #                         step=target_time,
-            #                         path=png_path,
-            #                         cfg=cfg
-            #                         )
-            
-            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-            #                         target_surface_test.detach().cpu().squeeze(),
-            #                         input_surface_test.detach().cpu().squeeze(),
-            #                         var='pm25',
-            #                         step=target_time,
-            #                         path=png_path,
-            #                         cfg=cfg
-            #                         )
-            
-            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-            #                         target_surface_test.detach().cpu().squeeze(),
-            #                         input_surface_test.detach().cpu().squeeze(),
-            #                         var='pm10',
-            #                         step=target_time,
-            #                         path=png_path,
-            #                         cfg=cfg
-            #                         )
-            
             utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
                                     target_surface_test.detach().cpu().squeeze(),
                                     input_surface_test.detach().cpu().squeeze(),
-                                    var='t2m',
+                                    var='pm1',
                                     step=target_time,
                                     path=png_path,
                                     cfg=cfg
@@ -569,11 +558,38 @@ def test(test_loader, model, device, res_path, cfg):
             utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
                                     target_surface_test.detach().cpu().squeeze(),
                                     input_surface_test.detach().cpu().squeeze(),
-                                    var='u10',
+                                    var='pm25',
                                     step=target_time,
                                     path=png_path,
                                     cfg=cfg
                                     )
+            
+            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+                                    target_surface_test.detach().cpu().squeeze(),
+                                    input_surface_test.detach().cpu().squeeze(),
+                                    var='pm10',
+                                    step=target_time,
+                                    path=png_path,
+                                    cfg=cfg
+                                    )
+            
+            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+            #                         target_surface_test.detach().cpu().squeeze(),
+            #                         input_surface_test.detach().cpu().squeeze(),
+            #                         var='t2m',
+            #                         step=target_time,
+            #                         path=png_path,
+            #                         cfg=cfg
+            #                         )
+            
+            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+            #                         target_surface_test.detach().cpu().squeeze(),
+            #                         input_surface_test.detach().cpu().squeeze(),
+            #                         var='u10',
+            #                         step=target_time,
+            #                         path=png_path,
+            #                         cfg=cfg
+            #                         )
 
         else:
             utils.visualize_orig(output_test.detach().cpu().squeeze(),
