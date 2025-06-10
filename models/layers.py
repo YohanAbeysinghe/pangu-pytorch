@@ -181,7 +181,7 @@ class EarthSpecificBlock(nn.Module):
         cnt += 1
     img_mask = img_mask.reshape(1, mZ // self.window_size[0], self.window_size[0], mH // self.window_size[1],
                                 self.window_size[1], mW // self.window_size[2], self.window_size[2], 1)
-    img_mask = torch.permute(img_mask, (0, 5, 1, 3, 2, 4, 6, 7))  # Current [1, 5, 4, 8, 2, 6, 12, 1]
+    img_mask = torch.permute(img_mask, (0, 5, 1, 3, 2, 4, 6, 7))  # torch.Size([1, 30, 4, 31, 2, 6, 12, 1]) ---->  Current [1, 5, 4, 8, 2, 6, 12, 1]
     mask_windows = img_mask.reshape(-1, self.type_of_windows, self.window_size[0], self.window_size[1],
                                     self.window_size[2], 1)
 
