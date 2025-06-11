@@ -158,7 +158,8 @@ class EarthSpecificBlock(nn.Module):
     self.padding_front, self.padding_back = 0, 5
     # self.pad3D = nn.ConstantPad3d((0, 0, 0, 0, self.padding_front,  self.padding_back), 0)
     if dim == 192:
-      input_shape = [8,186]
+      # input_shape = [8,186]
+      input_shape = [8,48] # @Yohan
     elif dim == 384:
       input_shape = [8,96]
     self.type_of_windows = (input_shape[0]//self.window_size[0])*(input_shape[1]//self.window_size[1]) #(8//2*186//6=124) (8//2*96//6=124=64) 
@@ -410,7 +411,7 @@ class EarthAttention3D(nn.Module):
     EarthSpecificBias = self.earth_specific_bias
 
     # @Yohan
-    EarthSpecificBias = EarthSpecificBias[:5, :32, :, :, :]
+    EarthSpecificBias = EarthSpecificBias[:, :32, :, :, :]
 
 
     # Add the Earth-Specific bias to the attention matrix
