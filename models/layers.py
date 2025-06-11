@@ -423,7 +423,7 @@ class EarthAttention3D(nn.Module):
 
     # Mask the attention between non-adjacent pixels, e.g., simply add -100 to the masked element.
     if mask is not None:
-      nW = mask.shape[0] # mask: 15x64x144x144
+      nW = mask.shape[0] # mask: 30x124x144x144  15x64x144x144
       attention = attention.view(1, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
       attention = attention.reshape(nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
       attention = self.softmax(attention)
