@@ -284,6 +284,28 @@ elif cfg.GLOBAL.START == "checkpoint":
       new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
       state_dict['_output_layer.conv_surface.bias'] = new_output_bias
 
+    
+  # Cropping the bias
+  # This ensures the earth_specific_bias from the checkpoint matches the current model's expected size (e.g., [1, 32, 6, 144, 144])
+  for layer in [0, 3]:
+      for block in [0, 1]:
+          key = f'layers.EarthSpecificLayer{layer}.blocks.EarthSpecificBlock{block}.attention.earth_specific_bias'
+          if key in state_dict:
+              orig_bias = state_dict[key]
+              if orig_bias.shape[1] > 32:
+                  state_dict[key] = orig_bias[:, :32, :, :, :]
+
+  # Crop earth_specific_bias from checkpoint to match current model size
+  for layer in [1, 2]:  # EarthSpecificLayer1 and 2
+      for block in range(6):  # Each has 6 EarthSpecificBlocks
+          key = f'layers.EarthSpecificLayer{layer}.blocks.EarthSpecificBlock{block}.attention.earth_specific_bias'
+          if key in state_dict:
+              orig_bias = state_dict[key]
+              target_shape = model.state_dict()[key].shape
+              if orig_bias.shape != target_shape:
+                  print(f'Cropping {key} from {orig_bias.shape} to {target_shape}')
+                  state_dict[key] = orig_bias[:, :target_shape[1], :, :, :]
+
   # Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
   model.load_state_dict(state_dict, strict=False)
   #

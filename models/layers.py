@@ -160,8 +160,13 @@ class EarthSpecificBlock(nn.Module):
     if dim == 192:
       # input_shape = [8,186]
       input_shape = [8,48] # @Yohan
+      self.padding_front, self.padding_back = 0, 5
+      self.padding_front_1, self.padding_back_1 = 0, 0
     elif dim == 384:
-      input_shape = [8,96]
+      input_shape = [8,24]
+      self.padding_front, self.padding_back = 0, 2
+      self.padding_front_1, self.padding_back_1 = 0, 6
+
     self.type_of_windows = (input_shape[0]//self.window_size[0])*(input_shape[1]//self.window_size[1]) #(8//2*186//6=124) (8//2*96//6=124=64) 
 
   def gen_mask(self, x):
@@ -206,7 +211,7 @@ class EarthSpecificBlock(nn.Module):
     # Zero-pad input if needed
     # x = self.pad3D(x) #torch.Size([1, 8, 186, 360, 192]) - [1, 8, 96, 180, 384]
     # Current x #torch.Size([1, 8, 48, 60, 192])
-    x = F.pad(x, (0, 0, 0, 0, self.padding_front,  self.padding_back), 'constant')
+    x = F.pad(x, (0, 0, self.padding_front_1, self.padding_back_1, self.padding_front,  self.padding_back), 'constant')
     
 
     ori_shape = x.shape
@@ -256,8 +261,9 @@ class EarthSpecificBlock(nn.Module):
 
     # Crop the zero-padding
     # Crop the tensor using the specified slices
-    depth_slice = slice(self.padding_front, x.shape[2]- self.padding_back)
-    x = x[:, :, depth_slice, :,:]
+    depth_slice = slice(self.padding_front, x.shape[2] - self.padding_back)
+    height_slice = slice(self.padding_front_1, x.shape[3] - self.padding_back_1)
+    x = x[:, :, depth_slice, height_slice, :]
 
     # The resulting 'cropped_tensor' will have the cropped contents of the original tensor
     # Reshape the tensor back to the input shape
@@ -314,9 +320,12 @@ class EarthAttention3D(nn.Module):
     # input_shape = [8,96]
     
     if self.dim == 192:
-      input_shape = [8,186]
+      # input_shape = [8,186]
+      input_shape = [8,48] # @Yohan
+      self.bias_crop = 32
     elif self.dim == 384:
-      input_shape = [8,96]
+      input_shape = [8,24]
+      self.bias_crop = 16
     self.type_of_windows = (input_shape[0]//window_size[0])*(input_shape[1]//window_size[1]) #(8//2*186//6=124) (8//2*96//6=124=64)
 
     # For each type of window, we will construct a set of parameters according to the paper
@@ -411,7 +420,7 @@ class EarthAttention3D(nn.Module):
     EarthSpecificBias = self.earth_specific_bias
 
     # @Yohan
-    EarthSpecificBias = EarthSpecificBias[:, :32, :, :, :]
+    EarthSpecificBias = EarthSpecificBias[:, :self.bias_crop, :, :, :]
 
 
     # Add the Earth-Specific bias to the attention matrix
@@ -420,7 +429,7 @@ class EarthAttention3D(nn.Module):
 
     # Mask the attention between non-adjacent pixels, e.g., simply add -100 to the masked element.
     if mask is not None:
-      nW = mask.shape[0] # mask: 15x64x144x144
+      nW = mask.shape[0] # mask: 30x124x144x144  15x64x144x144
       attention = attention.view(1, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
       attention = attention.reshape(nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
       attention = self.softmax(attention)
@@ -500,11 +509,11 @@ class UpSample(nn.Module):
 
     # Reorganize x to increase the resolution: simply change the order and upsample from (8, 180, 91) to (8, 360, 182)
     # Reshape x to facilitate upsampling.
-    x = x.view(x.shape[0], 8, 91, 180, 2, 2, x.shape[-1]//4)
+    x = x.view(x.shape[0], 8, 22, 30, 2, 2, x.shape[-1]//4) # @YohanAbeysinghe
     # Change the order of x
     x = torch.permute(x, (0,1,2,4,3,5,6))#([1, 8, 91, 2, 180, 2, 192])
     # Reshape to get Tensor with a resolution of (8, 360, 182)
-    x = x.contiguous().view(x.shape[0], 8, 182, 360, x.shape[-1])#
+    x = x.contiguous().view(x.shape[0], 8, 44, 60, x.shape[-1])#
 
     # Crop the output to the input shape of the network
     # x = Crop3D(x)
@@ -555,14 +564,21 @@ class PatchRecovery_pretrain(nn.Module):
     output = output.reshape(output.shape[0], 5, self.patch_size[0], self.patch_size[1], self.patch_size[2], Z - 1, H,
                             W)  # [1, 5, 2, 4, 4, 7, 181, 360]
     output = torch.permute(output, (0, 1, 5, 2, 6, 3, 7, 4))
-    output = output.reshape(output.shape[0], 5, 14, 724, 1440)
+
+    # output = output.reshape(output.shape[0], 5, 14, 724, 1440)
+    output = output.reshape(output.shape[0], 5, 14, 172, 240) # @YohanAbeysinghe
+
     # Crop the output to remove zero-paddings
     depth_slice = slice(0, output.shape[-3] - 1)
     height_slice = slice(0, output.shape[-2] - 3)
     output = output[:, :, depth_slice, height_slice, :]
-    output = output.view(output.shape[0], 5, 1, 13, 721, 1440)
+
+    # output = output.view(output.shape[0], 5, 1, 13, 721, 1440)
+    output = output.view(output.shape[0], 5, 1, 13, 169, 240) # @YohanAbeysinghe
+
     # output = output * self.upper_std + self.upper_mean
-    output = output.view(output.shape[0], 5, 13, 721, 1440)
+    # output = output.view(output.shape[0], 5, 13, 721, 1440)
+    output = output.view(output.shape[0], 5, 13, 169, 240) # @YohanAbeysinghe
 
     output_surface = x[:, :, 0, :, :]
     output_surface = output_surface.view(output_surface.shape[0], self.dim, -1)
@@ -590,11 +606,17 @@ class PatchRecovery_pretrain(nn.Module):
     if self.cfg.GLOBAL.MODEL == "All_pm":
       output_surface = output_surface.view(output_surface.shape[0], 7, self.patch_size[1], self.patch_size[2], H, W)
       output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
-      output_surface = output_surface.reshape(output_surface.shape[0], 7, 724, 1440)
+
+      # output_surface = output_surface.reshape(output_surface.shape[0], 7, 724, 1440)
+      output_surface = output_surface.reshape(output_surface.shape[0], 7, 172, 240) # @YohanAbeysinghe
+
       output_surface = output_surface[:, :, height_slice, :]
-      output_surface = output_surface.view(output_surface.shape[0], 7, 1, 721, 1440)
+
+      # output_surface = output_surface.view(output_surface.shape[0], 7, 1, 721, 1440)
+      output_surface = output_surface.view(output_surface.shape[0], 7, 1, 169, 240) # @YohanAbeysinghe
+
       # output_surface = output_surface * self.surface_std + self.surface_mean
-      output_surface = output_surface.view(output_surface.shape[0], 7, 721, 1440)
+      output_surface = output_surface.view(output_surface.shape[0], 7, 169, 240)
 
     if self.cfg.GLOBAL.MODEL == "Only_pm":
       output_surface = output_surface.view(output_surface.shape[0], 3, self.patch_size[1], self.patch_size[2], H, W)
