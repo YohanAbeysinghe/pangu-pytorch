@@ -53,6 +53,11 @@ class PatchEmbedding_pretrain(nn.Module):
     self.surface_mean, self.surface_std, self.upper_mean, self.upper_std = statistics[0], statistics[1], statistics[2], statistics[3]
     self.constant_masks = maps
 
+    if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+      # self.constant_masks = self.constant_masks[:, :, 175:392, 718:1030]
+      self.constant_masks = self.constant_masks[:, :, 175:395, 718:1030] # @YohanAbeysinghe padding in the constant masks force us to load 220x312 crop.
+      const_h = const_h[:, :, :, :, 175:392, 718:1030]
+
     input_surface = input_surface.reshape(input_surface.shape[0], input_surface.shape[1], 1, input_surface.shape[-2],input_surface.shape[-1])
     input_surface = torch.permute(input_surface, (0, 2, 3, 4, 1))  # [1,1,721,1440,4]
     input_surface = (input_surface - self.surface_mean) / self.surface_std
@@ -79,7 +84,7 @@ class PatchEmbedding_pretrain(nn.Module):
     input_surface = self.conv_surface(input_surface)  # (1,192,65160)
 
 
-    input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 181, 360)
+    input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], 1, 55, 78)
     input = input.reshape(input.shape[0], input.shape[1], 1, input.shape[2], input.shape[-2], input.shape[-1])
     input = torch.permute(input, (0, 2, 3, 4, 5, 1))  # [1,1,13,721,1440,5]
     input = torch.flip(input, [2])  # [1,1,13,721,1440,5]
@@ -97,7 +102,7 @@ class PatchEmbedding_pretrain(nn.Module):
     input = input.reshape(input.shape[0], input.shape[1] * input.shape[2] * input.shape[3] * input.shape[4], -1)
     input = self.conv(input)  # (1,192,456120)
    
-    input = input.view(input.shape[0], input.shape[1], 7, 181, 360) # (1,192,8,181,360)
+    input = input.view(input.shape[0], input.shape[1], 7, 55, 78) # (1,192,8,181,360)
     x = torch.cat((input_surface, input), dim=2)
     x = x.view(x.shape[0], x.shape[1], -1)  # (1, 192521280)
     x = torch.permute(x, (0, 2, 1))  # ->([1, 521280, 192]) [B, spatial, C]

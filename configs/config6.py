@@ -16,7 +16,7 @@ __C.GLOBAL.MODEL = 'All_pm'
 __C.GLOBAL.LOSS = "MSE" #"Exloss"
 __C.GLOBAL.START = "checkpoint" #"scratch"
 __C.GLOBAL.LORA = False #False
-__C.GLOBAL.STYLE = 'output_crop' #'input_output_crop' #'padding' # 'output_crop' 
+__C.GLOBAL.STYLE = 'input_output_crop' #'input_output_crop' #'padding' # 'output_crop' 
 
 for dirs in ['/l/users/fahad.khan/akhtar/Pangu/pangu-pytorch']:
     if os.path.exists(dirs):
