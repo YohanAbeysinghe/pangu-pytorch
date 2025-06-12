@@ -164,17 +164,28 @@ class EarthSpecificBlock(nn.Module):
     # self.pad3D = nn.ConstantPad3d((0, 0, 0, 0, self.padding_front,  self.padding_back), 0)
     if dim == 192:
       # input_shape = [8,186]
-      input_shape = [8,48] # @Yohan
-      self.padding_front, self.padding_back = 0, 5
-      self.padding_front_1, self.padding_back_1 = 0, 0
+      if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+        input_shape = [8,60] # @Yohan
+        self.padding_front, self.padding_back = 0, 5
+        self.padding_front_1, self.padding_back_1 = 0, 6
+      else:
+        input_shape = [8,48] # @Yohan
+        self.padding_front, self.padding_back = 0, 5
+        self.padding_front_1, self.padding_back_1 = 0, 0
+
     elif dim == 384:
-      input_shape = [8,24]
-      self.padding_front, self.padding_back = 0, 2
-      self.padding_front_1, self.padding_back_1 = 0, 6
+      if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+        input_shape = [8,30] # @Yohan
+        self.padding_front, self.padding_back = 0, 2
+        self.padding_front_1, self.padding_back_1 = 0, 9
+      else:
+        input_shape = [8,24]
+        self.padding_front, self.padding_back = 0, 2
+        self.padding_front_1, self.padding_back_1 = 0, 6
 
     self.type_of_windows = (input_shape[0]//self.window_size[0])*(input_shape[1]//self.window_size[1]) #(8//2*186//6=124) (8//2*96//6=124=64) 
 
-  def gen_mask(self, x):
+  def gen_mask(self, x): # x torch.Size([1, 8, 60, 84, 192])  current ([1, 8, 30, 48, 384])
     img_mask = torch.zeros((1, x.shape[1], x.shape[2], x.shape[3], 1)).to(
       self.device)  # ? CHECK change to x.shape?  # 1 Z H W 1   --> Current [1, 8, 48, 60, 1]
     mB, mZ, mH, mW, mC = img_mask.shape
@@ -202,7 +213,7 @@ class EarthSpecificBlock(nn.Module):
     attn_mask = mask_windows.unsqueeze(2) - mask_windows.unsqueeze(3)
     attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
 
-    return attn_mask
+    return attn_mask # torch.Size([7, 40, 144, 144])  expecting (4,20,144,144)
 
   def forward(self, x, Z, H, W, roll):
     cfg = self.cfg # @Yohan
@@ -242,7 +253,7 @@ class EarthSpecificBlock(nn.Module):
     # Reorganize data to calculate window attention
     x_window = x.view(x.shape[0], x.shape[1]//self.window_size[0], self.window_size[0], x.shape[2] // self.window_size[1], self.window_size[1], x.shape[3] // self.window_size[2], self.window_size[2], x.shape[-1])
 
-    x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #[1,30,4,31,2,6,12,192]  Current-[1,5,4,8,2,6,12,192]
+    x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #[1,30,4,31,2,6,12,192]  Current-[1,5,4,8,2,6,12,192] [1,7,4,10,2,6,12,192]
     x_window = x_window.reshape(x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
     #x_window (30,124,2,6,12,192) --> Current-[5,32,2,6,12,192]
     x_window = x_window.contiguous().view(x_window.shape[0], x_window.shape[1], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
@@ -256,7 +267,7 @@ class EarthSpecificBlock(nn.Module):
     # x_shifted = torch.permute(x_shifted, (0, 1, 4, 2, 5, 3, 6, 7)) 
     x_shifted = torch.permute(x_shifted, (0, 2, 4, 3, 5, 1, 6, 7))
     #torch.Size([1, 4, 2, 31, 6, 30, 12, 192]) - ([1, 4, 2, 16, 6, 15, 12, 384])
-    x_shifted = x_shifted.contiguous().view(ori_shape) #([1, 8, 186, 360, 192])-([1, 8, 96, 180, 384])  ---> Current [1, 8, 48, 60, 192]
+    x_shifted = x_shifted.contiguous().view(ori_shape) #([1, 8, 186, 360, 192])-([1, 8, 96, 180, 384])  ---> Current [1, 8, 48, 60, 192]  ----> [1, 8, 60, 84, 192]
 
     if roll:
       # Roll x back for half of the window
@@ -325,12 +336,20 @@ class EarthAttention3D(nn.Module):
     # input_shape = [8,96]
     
     if self.dim == 192:
-      # input_shape = [8,186]
-      input_shape = [8,48] # @Yohan
-      self.bias_crop = 32
+      if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+        input_shape = [8,60] # @Yohan
+        self.bias_crop = 40
+      else:
+        # input_shape = [8,186]
+        input_shape = [8,48] # @Yohan
+        self.bias_crop = 32
     elif self.dim == 384:
-      input_shape = [8,24]
-      self.bias_crop = 16
+      if self.cfg.GLOBAL.STYLE == 'input_output_crop':
+        input_shape = [8,30]
+        self.bias_crop = 20
+      else:
+        input_shape = [8,24]
+        self.bias_crop = 16
     self.type_of_windows = (input_shape[0]//window_size[0])*(input_shape[1]//window_size[1]) #(8//2*186//6=124) (8//2*96//6=124=64)
 
     # For each type of window, we will construct a set of parameters according to the paper
@@ -514,11 +533,11 @@ class UpSample(nn.Module):
 
     # Reorganize x to increase the resolution: simply change the order and upsample from (8, 180, 91) to (8, 360, 182)
     # Reshape x to facilitate upsampling.
-    x = x.view(x.shape[0], 8, 22, 30, 2, 2, x.shape[-1]//4) # @YohanAbeysinghe
+    x = x.view(x.shape[0], 8, 28, 39, 2, 2, x.shape[-1]//4) # @YohanAbeysinghe
     # Change the order of x
     x = torch.permute(x, (0,1,2,4,3,5,6))#([1, 8, 91, 2, 180, 2, 192])
     # Reshape to get Tensor with a resolution of (8, 360, 182)
-    x = x.contiguous().view(x.shape[0], 8, 44, 60, x.shape[-1])#
+    x = x.contiguous().view(x.shape[0], 8, 56, 78, x.shape[-1])#
 
     # Crop the output to the input shape of the network
     # x = Crop3D(x)
@@ -571,7 +590,8 @@ class PatchRecovery_pretrain(nn.Module):
     output = torch.permute(output, (0, 1, 5, 2, 6, 3, 7, 4))
 
     # output = output.reshape(output.shape[0], 5, 14, 724, 1440)
-    output = output.reshape(output.shape[0], 5, 14, 172, 240) # @YohanAbeysinghe
+    # output = output.reshape(output.shape[0], 5, 14, 172, 240) # @YohanAbeysinghe
+    output = output.reshape(output.shape[0], 5, 14, 220, 312)
 
     # Crop the output to remove zero-paddings
     depth_slice = slice(0, output.shape[-3] - 1)
@@ -579,11 +599,11 @@ class PatchRecovery_pretrain(nn.Module):
     output = output[:, :, depth_slice, height_slice, :]
 
     # output = output.view(output.shape[0], 5, 1, 13, 721, 1440)
-    output = output.view(output.shape[0], 5, 1, 13, 169, 240) # @YohanAbeysinghe
+    output = output.view(output.shape[0], 5, 1, 13, 217, 312) # @YohanAbeysinghe
 
     # output = output * self.upper_std + self.upper_mean
     # output = output.view(output.shape[0], 5, 13, 721, 1440)
-    output = output.view(output.shape[0], 5, 13, 169, 240) # @YohanAbeysinghe
+    output = output.view(output.shape[0], 5, 13, 217, 312) # @YohanAbeysinghe
 
     output_surface = x[:, :, 0, :, :]
     output_surface = output_surface.view(output_surface.shape[0], self.dim, -1)
@@ -613,15 +633,15 @@ class PatchRecovery_pretrain(nn.Module):
       output_surface = torch.permute(output_surface, (0, 1, 4, 2, 5, 3))
 
       # output_surface = output_surface.reshape(output_surface.shape[0], 7, 724, 1440)
-      output_surface = output_surface.reshape(output_surface.shape[0], 7, 172, 240) # @YohanAbeysinghe
+      output_surface = output_surface.reshape(output_surface.shape[0], 7, 220, 312) # @YohanAbeysinghe
 
       output_surface = output_surface[:, :, height_slice, :]
 
       # output_surface = output_surface.view(output_surface.shape[0], 7, 1, 721, 1440)
-      output_surface = output_surface.view(output_surface.shape[0], 7, 1, 169, 240) # @YohanAbeysinghe
+      output_surface = output_surface.view(output_surface.shape[0], 7, 1, 217, 312) # @YohanAbeysinghe
 
       # output_surface = output_surface * self.surface_std + self.surface_mean
-      output_surface = output_surface.view(output_surface.shape[0], 7, 169, 240)
+      output_surface = output_surface.view(output_surface.shape[0], 7, 217, 312)
 
     if self.cfg.GLOBAL.MODEL == "Only_pm":
       output_surface = output_surface.view(output_surface.shape[0], 3, self.patch_size[1], self.patch_size[2], H, W)

@@ -330,7 +330,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
 
                 
-                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
+                if cfg.GLOBAL.STYLE == 'input_output_crop' or cfg.GLOBAL.STYLE == 'padding':
                     utils.visualize_mena(
                         output_val.detach().cpu().squeeze(),
                         target_val.detach().cpu().squeeze(),
@@ -534,91 +534,113 @@ def test(test_loader, model, device, res_path, cfg):
         utils.mkdirs(png_path)
 
         
-        if cfg.GLOBAL.MENA_crop:
-        #['msl', 'u','v','t2m']
-            utils.visualize(output_test.detach().cpu().squeeze(),
-                    target_test.detach().cpu().squeeze(), 
-                    input_test.detach().cpu().squeeze(),
-                    var='t',
-                    z = 2,
-                    step=target_time, 
-                    path=png_path,
-                    cfg=cfg
-                    )
-            
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm1',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
-            
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm25',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
-            
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm10',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
-            
-            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-            #                         target_surface_test.detach().cpu().squeeze(),
-            #                         input_surface_test.detach().cpu().squeeze(),
-            #                         var='t2m',
-            #                         step=target_time,
-            #                         path=png_path,
-            #                         cfg=cfg
-            #                         )
-            
-            # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-            #                         target_surface_test.detach().cpu().squeeze(),
-            #                         input_surface_test.detach().cpu().squeeze(),
-            #                         var='u10',
-            #                         step=target_time,
-            #                         path=png_path,
-            #                         cfg=cfg
-            #                         )
 
-        else:
-            utils.visualize_orig(output_test.detach().cpu().squeeze(),
-                    target_test.detach().cpu().squeeze(), 
-                    input_test.detach().cpu().squeeze(),
-                    var='t',
-                    z = 2,
-                    step=target_time, 
-                    path=png_path,
-                    cfg=cfg
-                    )
-                        
-            utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
-                                target_surface_test.detach().cpu().squeeze(),
-                                input_surface_test.detach().cpu().squeeze(),
-                                var='u10',
-                                step=target_time,
-                                path=png_path,
-                                cfg=cfg
-                                )
+                
+        if cfg.GLOBAL.STYLE == 'input_output_crop' or cfg.GLOBAL.STYLE == 'padding':
+            utils.visualize_mena(
+                output_test.detach().cpu().squeeze(),
+                target_test.detach().cpu().squeeze(),
+                input_test.squeeze(),
+                var='u',
+                z=12,
+                step=target_time,
+                path=png_path,
+                cfg=cfg
+                )
+        
+            utils.visualize_surface_mena(
+                output_surface_test.detach().cpu().squeeze(),
+                target_surface_test.detach().cpu().squeeze(),
+                input_surface_test.squeeze(),
+                var='u10',
+                step=target_time,
+                path=png_path,
+                cfg=cfg
+                )
+
+            utils.visualize_surface_mena(
+                output_surface_test.detach().cpu().squeeze(),
+                target_surface_test.detach().cpu().squeeze(),
+                input_surface_test.squeeze(),
+                var='pm1',
+                step=target_time,
+                path=png_path,
+                cfg=cfg
+                )
+        
+            utils.visualize_surface_mena(
+                output_surface_test.detach().cpu().squeeze(),
+                target_surface_test.detach().cpu().squeeze(),
+                input_surface_test.squeeze(),
+                var='pm25',
+                step=target_time,
+                path=png_path,
+                cfg=cfg
+                )
             
-            utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
-                                target_surface_test.detach().cpu().squeeze(),
-                                input_surface_test.detach().cpu().squeeze(),
-                                var='t2m',
-                                step=target_time,
-                                path=png_path,
-                                cfg=cfg
-                                )
+            utils.visualize_surface_mena(
+                output_surface_test.detach().cpu().squeeze(),
+                target_surface_test.detach().cpu().squeeze(),
+                input_surface_test.squeeze(),
+                var='pm10',
+                step=target_time,
+                path=png_path,
+                cfg=cfg
+                )
+            
+        # else:
+        #     utils.visualize_orig(
+        #         output_val.detach().cpu().squeeze(),
+        #         target_val.detach().cpu().squeeze(),
+        #         input_val_raw.squeeze(),
+        #         var='u',
+        #         z=12,
+        #         step=i,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
+
+        #     utils.visuailze_surface_orig(
+        #         output_val.detach().cpu().squeeze(),
+        #         target_val.detach().cpu().squeeze(),
+        #         input_val_raw.squeeze(),
+        #         var='u',
+        #         z=12,
+        #         step=i,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
+
+        #     utils.visuailze_surface_orig(
+        #         output_surface_val.detach().cpu().squeeze(),
+        #         target_surface_val.detach().cpu().squeeze(),
+        #         input_surface_val.squeeze(),
+        #         var='u10',
+        #         step=i,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
+
+        #     utils.visuailze_surface_orig(
+        #         output_surface_val.detach().cpu().squeeze(),
+        #         target_surface_val.detach().cpu().squeeze(),
+        #         input_surface_val.squeeze(),
+        #         var='pm2p5',
+        #         step=i,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
+            
+        #     utils.visuailze_surface_orig(
+        #         output_surface_val.detach().cpu().squeeze(),
+        #         target_surface_val.detach().cpu().squeeze(),
+        #         input_surface_val.squeeze(),
+        #         var='pm10',
+        #         step=i,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
+
 
         # Compute test scores
         # rmse

@@ -66,25 +66,24 @@ class PanguModel(nn.Module):
     # x = self.layers[0](x, 8, 181, 360)
 
     # @Yohan
-    x = x[:, :20640,:]
-    x = self.layers[0](x, 8, 43, 60)
+    x = self.layers[0](x, 8, 55, 78)
 
     # Store the tensor for skip-connection
     skip = x 
 
     # Downsample from (8, 360, 181) to (8, 180, 91)
-    x = self.downsample(x, 8, 43, 60)
+    x = self.downsample(x, 8, 55, 78)
 
-    x = self.layers[1](x, 8, 22, 30)
+    x = self.layers[1](x, 8, 28, 39)
     # Decoder, composed of two layers
     # Layer 3, shape (8, 180, 91, 2C), C = 192 as in the original paper
-    x = self.layers[2](x, 8, 22, 30)
+    x = self.layers[2](x, 8, 28, 39)
 
     # Upsample from (8, 180, 91) to (8, 360, 181)
     x = self.upsample(x)
 
     # Layer 4, shape (8, 360, 181, 2C), C = 192 as in the original paper
-    x = self.layers[3](x, 8, 43, 60) #([1, 521280, 192])
+    x = self.layers[3](x, 8, 55, 78) #([1, 521280, 192])
 
 
     # Skip connect, in last dimension(C from 192 to 384)
@@ -92,7 +91,7 @@ class PanguModel(nn.Module):
 
     # Recover the output fields from patches
     # output, output_surface = checkpoint.checkpoint(self._output_layer, x, 8, 181, 360)
-    output, output_surface = self._output_layer(x, 8, 43, 60)
+    output, output_surface = self._output_layer(x, 8, 55, 78)
 
     return output, output_surface
 

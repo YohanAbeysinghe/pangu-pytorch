@@ -31,7 +31,7 @@ from tensorboardX import SummaryWriter
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config7', help='Option to load different configs')
 parser.add_argument('--output', type=str, default='proper_crop_mena', help='Name of the output directory')
-parser.add_argument('--distri', default=True, help='Doing the distributed training')
+parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -217,43 +217,8 @@ model = PanguModel(device=device, cfg=cfg).to(device)
 
 module_copy = copy.deepcopy(model) # For later comparisons
 
-if cfg.GLOBAL.START == "scratch":
-    if cfg.GLOBAL.MODEL == 'All_pm':
-        with torch.no_grad():
-            device = next(model.parameters()).device  # Get the model's current device
 
-            # Input: [out_channels, in_channels, kernel_size]
-            input_weight = torch.empty(192, 160, 1, device=device)
-            nn.init.xavier_uniform_(input_weight)
-            model._input_layer.conv_surface.weight = nn.Parameter(input_weight)
-
-            # Output: [out_channels, in_channels, kernel_size]
-            output_weight = torch.empty(112, 384, 1, device=device)
-            nn.init.xavier_uniform_(output_weight)
-            model._output_layer.conv_surface.weight = nn.Parameter(output_weight)
-
-            output_bias = torch.zeros(112, device=device)
-            model._output_layer.conv_surface.bias = nn.Parameter(output_bias)
-
-    if cfg.GLOBAL.MODEL == 'Only_pm':
-        with torch.no_grad():
-            device = next(model.parameters()).device  # Get the model's current device
-
-            # Input: [out_channels, in_channels, kernel_size]
-            input_weight = torch.empty(192, 48, 1, device=device)
-            nn.init.xavier_uniform_(input_weight)
-            model._input_layer.conv_surface.weight = nn.Parameter(input_weight)
-
-            # Output: [out_channels, in_channels, kernel_size]
-            output_weight = torch.empty(48, 384, 1, device=device)
-            nn.init.xavier_uniform_(output_weight)
-            model._output_layer.conv_surface.weight = nn.Parameter(output_weight)
-
-            output_bias = torch.zeros(48, device=device)
-            model._output_layer.conv_surface.bias = nn.Parameter(output_bias)
-
-
-elif cfg.GLOBAL.START == "checkpoint":
+if cfg.GLOBAL.START == "checkpoint":
   checkpoint = torch.load(cfg.PG.BENCHMARK.PRETRAIN_24_torch, weights_only=False, map_location='cuda')
   state_dict = checkpoint['model']
   #
@@ -313,9 +278,23 @@ elif cfg.GLOBAL.START == "checkpoint":
 ####################################Hyperparameters########################################
 ###########################################################################################
 #
-#Fully finetune
-for param in model.parameters():
-    param.requires_grad = True
+# Dynamically find all nn.Linear layers in the model
+target_modules = []
+for name, module in model.named_modules():
+    if isinstance(module, nn.Linear):
+        target_modules.append(name)
+        print(f"Appended module for LoRA: {name}")
+
+lora_config = LoraConfig(
+    r=cfg.PG.TRAIN.LOW_RANK,          # Make sure this is capitalized consistently
+    lora_alpha=16,
+    target_modules=target_modules,
+    lora_dropout=0.1,
+    # bias="none",                      # or "all" / "lora_only" depending on needs
+    # task_type="REGRESSION"           # Or "FEATURE_EXTRACTION" if only embedding
+)
+
+model = get_peft_model(model, lora_config).to(device)
 
 optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                              lr = cfg.PG.TRAIN.LR,
@@ -375,21 +354,3 @@ model = train(model,
 #         rank=local_rank
 #         )
 #
-###########################################################################################
-################################### Testing  ##############################################
-###########################################################################################
-#
-# best_model = torch.load(os.path.join(output_path,"models/best_model.pth"),
-#                         map_location='cuda:0',
-#                         weights_only=False)
-
-# logger.info("Begin testing...")
-
-# test(test_loader=test_dataloader,
-#      model=best_model,
-#      device=device,
-#      res_path=output_path,
-#      cfg = cfg)
-#
-###########################################################################################
-###########################################################################################
