@@ -230,7 +230,11 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
                 torch.save(model.module.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
                 if cfg.GLOBAL.LORA:
-                    model.module.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                    peft_model = model.module if distri else model
+                    if hasattr(peft_model, "save_pretrained"):
+                        peft_model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                    else:
+                        print("Warning: LoRA model does not support save_pretrained()")
 
             else:
                 save_file = {"model": model.state_dict(),
@@ -330,7 +334,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
 
                 
-                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
+                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding' or cfg.GLOBAL.STYLE == 'original':
                     utils.visualize_mena(
                         output_val.detach().cpu().squeeze(),
                         target_val.detach().cpu().squeeze(),
