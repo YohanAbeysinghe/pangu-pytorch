@@ -29,9 +29,9 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config7', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='proper_crop_mena', help='Name of the output directory')
-parser.add_argument('--distri', default=False, help='Doing the distributed training')
+parser.add_argument('--config', type=str, default='config9', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='proper_crop_mena_train_lora', help='Name of the output directory')
+parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
@@ -258,7 +258,7 @@ if cfg.GLOBAL.START == "checkpoint":
           if key in state_dict:
               orig_bias = state_dict[key]
               if orig_bias.shape[1] > 40:
-                  state_dict[key] = orig_bias[:, :40, :, :, :]
+                  state_dict[key] = orig_bias[:, 29:69, :, :, :]
 
   # Crop earth_specific_bias from checkpoint to match current model size
   for layer in [1, 2]:  # EarthSpecificLayer1 and 2
@@ -269,7 +269,7 @@ if cfg.GLOBAL.START == "checkpoint":
               target_shape = model.state_dict()[key].shape
               if orig_bias.shape != target_shape:
                   print(f'Cropping {key} from {orig_bias.shape} to {target_shape}')
-                  state_dict[key] = orig_bias[:, :target_shape[1], :, :, :]
+                  state_dict[key] = orig_bias[:, 15:35, :, :, :]
 
   # Load the modified state_dict if cfg.GLOBAL.MODEL == 'pm25'.
   model.load_state_dict(state_dict, strict=False)
@@ -295,6 +295,48 @@ lora_config = LoraConfig(
 )
 
 model = get_peft_model(model, lora_config).to(device)
+
+#Unfreezing changed layers
+# Ensure manually modified layers are set to trainable
+model._input_layer.conv_surface.weight.requires_grad = True
+model._output_layer.conv_surface.weight.requires_grad = True
+model._output_layer.conv_surface.bias.requires_grad = True
+
+# # Ensure cropped earth_specific_bias tensors are trainable
+# for layer in [0, 1, 2, 3]:
+#     for block in range(6):
+#         try:
+#             attn = eval(f"model.layers.EarthSpecificLayer{layer}.blocks.EarthSpecificBlock{block}.attention")
+#             if hasattr(attn, 'earth_specific_bias') and isinstance(attn.earth_specific_bias, torch.nn.Parameter):
+#                 attn.earth_specific_bias.requires_grad = True
+#         except:
+#             pass
+
+#Print trainable parameters (first few lines only)
+# print("\n[LoRA parameters only]")
+# for name, param in model.named_parameters():
+#     if "lora_" in name and param.requires_grad:
+#         print(f"✓ {name}")
+
+# print("\n[Original model parameters being trained]")
+# for name, param in model.named_parameters():
+#     if "lora_" not in name and param.requires_grad:
+#         print(f"✓ {name}")
+
+# total_params = sum(p.numel() for p in model.parameters())
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# lora_params = sum(p.numel() for n, p in model.named_parameters() if "lora_" in n and p.requires_grad)
+# original_params = sum(p.numel() for n, p in model.named_parameters() if "lora_" not in n and p.requires_grad)
+
+# print(f"\nParameter Breakdown:")
+# print(f"  LoRA Parameters           : {lora_params:,}")
+# print(f"  Original Trainable Params : {original_params:,}")
+# print(f"  Total Trainable Params    : {trainable_params:,}")
+
+# print(f"\nModel Size:")
+# print(f"  Total Parameters          : {total_params:,}")
+# print(f"  Trainable Parameters      : {trainable_params:,}")
+# print(f"  Percentage Trainable      : {100 * trainable_params / total_params:.2f}%")
 
 optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                              lr = cfg.PG.TRAIN.LR,

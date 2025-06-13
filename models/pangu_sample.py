@@ -239,7 +239,11 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 torch.save(save_file, os.path.join(model_save_path, 'train_{}.pth'.format(i)))
                 torch.save(model.state_dict(), os.path.join(model_save_path, 'model_weights_{}.pth'.format(i)))
                 if cfg.GLOBAL.LORA:
-                    model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                    peft_model = model.module if distri else model
+                    if hasattr(peft_model, "save_pretrained"):
+                        peft_model.save_pretrained(os.path.join(model_save_path, f"peft_model_epoch_{i}"))
+                    else:
+                        print("Warning: LoRA model does not support save_pretrained()")
 
         # Begin to validate
         if i % cfg.PG.VAL.INTERVAL == 0:
