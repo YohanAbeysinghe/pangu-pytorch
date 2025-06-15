@@ -430,8 +430,8 @@ class EarthAttention3D(nn.Module):
 
     # Add the Earth-Specific bias to the attention matrix
     # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
-    attention = EarthSpecificBias.unsqueeze(1).expand(-1, attention.shape[1], -1, -1, -1, -1)
-    # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
+    EarthSpecificBias = EarthSpecificBias.unsqueeze(1).expand(-1, attention.shape[1], -1, -1, -1, -1)
+    attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
 
     # Mask the attention between non-adjacent pixels, e.g., simply add -100 to the masked element.
     if mask is not None:
