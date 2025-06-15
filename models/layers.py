@@ -239,15 +239,18 @@ class EarthSpecificBlock(nn.Module):
     x_window = x.view(x.shape[0], x.shape[1]//self.window_size[0], self.window_size[0], x.shape[2] // self.window_size[1], self.window_size[1], x.shape[3] // self.window_size[2], self.window_size[2], x.shape[-1])
 
     x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #[1,30,4,31,2,6,12,192]  Current-[1,5,4,8,2,6,12,192]
-    x_window = x_window.reshape(x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
+
+    B = x_window.shape[0]  # Batch size
+
+    x_window = x_window.reshape(B, x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
     #x_window (30,124,2,6,12,192) --> Current-[5,32,2,6,12,192]
-    x_window = x_window.contiguous().view(x_window.shape[0], x_window.shape[1], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
+    x_window = x_window.contiguous().view(B, x_window.shape[1], x_window.shape[2], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
     # Apply 3D window attention with Earth-Specific bias
     attn_windows = self.attention(x_window, mask)#？x_window:([30, 124, 144, 192]) -[15, 64, 144, 384])  Current x_window [5, 32, 144, 192]   
 
     # Reorganize data to original shapes
     # x_shifted = attn_windows.view(-1, Z // self.window_size[0], H // self.window_size[1] + 1, W //self.window_size[2], self.window_size[0], self.window_size[1], self.window_size[2], x_window.shape[-1])
-    x_shifted = attn_windows.view(1, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192  ---> Current [1, 5, 4, 8, 2, 6, 12, 192]
+    x_shifted = attn_windows.view(B, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192  ---> Current [1, 5, 4, 8, 2, 6, 12, 192]
     #x_window torch.Size([30, 124, 144, 192]) -[15, 64, 144, 384])
     # x_shifted = torch.permute(x_shifted, (0, 1, 4, 2, 5, 3, 6, 7)) 
     x_shifted = torch.permute(x_shifted, (0, 2, 4, 3, 5, 1, 6, 7))
@@ -389,11 +392,15 @@ class EarthAttention3D(nn.Module):
 
     x = self.linear1(x)#([30, 124, 144, 576])
 
+    B =  x.shape[0]  # Batch size
+
     # reshape the data to calculate multi-head attention
-    qkv = torch.reshape(x, shape=(x.shape[0], x.shape[1], x.shape[2], 3, self.head_number, self.dim // self.head_number)) 
+    qkv = torch.reshape(x, shape=(B, x.shape[1], x.shape[2], x.shape[3], 3, self.head_number, self.dim // self.head_number)) 
     # 30，124，144，3，6，32 
-    qkv = torch.permute(qkv, (3, 0, 1, 4, 2, 5)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
-    query, key, value = qkv[0], qkv[1], qkv[2]
+    # qkv = torch.permute(qkv, (3, 0, 1, 4, 2, 5)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
+    qkv = torch.permute(qkv, (0, 4, 1, 2, 5, 3, 6)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
+
+    query, key, value = qkv[:, 0], qkv[:, 1], qkv[:, 2]
 
     # Scale the attention
     query = query * self.scale
@@ -415,20 +422,22 @@ class EarthAttention3D(nn.Module):
     # EarthSpecificBias = torch.permute(EarthSpecificBias, (2, 3, 0, 1))#torch.Size([124,6,144, 144])
     # EarthSpecificBias = EarthSpecificBias.unsqueeze(0)# ->[1,124,6,144, 144]
     EarthSpecificBias = self.earth_specific_bias
+    EarthSpecificBias = EarthSpecificBias.expand(B, -1, -1, -1, -1)
 
     # @Yohan
     # EarthSpecificBias = EarthSpecificBias[:5, :32, :, :, :]
 
 
     # Add the Earth-Specific bias to the attention matrix
-    attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
+    # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
+    attention = EarthSpecificBias.unsqueeze(1).expand(-1, attention.shape[1], -1, -1, -1, -1)
     # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
 
     # Mask the attention between non-adjacent pixels, e.g., simply add -100 to the masked element.
     if mask is not None:
       nW = mask.shape[0] # mask: 30x124x144x144  15x64x144x144
-      attention = attention.view(1, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
-      attention = attention.reshape(nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
+      attention = attention.view(B, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
+      attention = attention.reshape(B, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
       attention = self.softmax(attention)
     else:
       attention = self.softmax(attention)
@@ -439,7 +448,8 @@ class EarthAttention3D(nn.Module):
     
 
     # Reshape tensor to the original shape
-    x = torch.permute(x, (0, 1, 3, 2, 4)) #([30, 124, 144, 6, 32])
+    # x = torch.permute(x, (0, 1, 3, 2, 4)) #([30, 124, 144, 6, 32])
+    x = torch.permute(x, (0, 1, 2, 4, 3, 5))
     
     x = torch.reshape(x, shape = original_shape)
 
