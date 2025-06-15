@@ -235,8 +235,8 @@ class NetCDFDataset(data.Dataset):
         if self.cfg.GLOBAL.STYLE == 'input_output_crop':
             # Create masks for the spatial crop
             # Just crop the region of interest instead of masking and zeroing
-            surface = surface[:, 175:392, 718:1030]                   # shape: (7, 217, 312)
-            upper = upper[:, :, 175:392, 718:1030]                    # shape: (5, 13, 217, 312)
+            surface = surface[:, 175:395, 718:1030]                   # shape: (7, 217, 312)
+            upper = upper[:, :, 175:395, 718:1030]                    # shape: (5, 13, 217, 312)
 
         return upper, surface
 

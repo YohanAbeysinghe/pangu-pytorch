@@ -32,7 +32,7 @@ class PatchEmbedding_pretrain(nn.Module):
     _, _, h, w = x.size()
     # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]  # 6
     # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]  # 0
-    x = F.pad(x, (0, 0, 0, 3), 'constant')
+    x = F.pad(x, (0, 0, 0, 0), 'constant')
     # x = self.Pad2D(x)
     return x
 
@@ -41,7 +41,7 @@ class PatchEmbedding_pretrain(nn.Module):
     # mod_pad_d = (self.window_size[0] - h % self.window_size[0]) % self.window_size[0]
     # mod_pad_h = (self.window_size[1] - h % self.window_size[1]) % self.window_size[1]
     # mod_pad_w = (self.window_size[2] - w % self.window_size[2]) % self.window_size[2]
-    x = F.pad(x, (0, 0, 0, 3, 0, 1), 'constant')
+    x = F.pad(x, (0, 0, 0, 0, 0, 1), 'constant')
       #@Yohan [1, 6, 14, 724,1440]
     # x = self.Pad3D(x)
     return x
@@ -56,7 +56,7 @@ class PatchEmbedding_pretrain(nn.Module):
     if self.cfg.GLOBAL.STYLE == 'input_output_crop':
       # self.constant_masks = self.constant_masks[:, :, 175:392, 718:1030]
       self.constant_masks = self.constant_masks[:, :, 175:395, 718:1030] # @YohanAbeysinghe padding in the constant masks force us to load 220x312 crop.
-      const_h = const_h[:, :, :, :, 175:392, 718:1030]
+      const_h = const_h[:, :, :, :, 175:395, 718:1030]
 
     input_surface = input_surface.reshape(input_surface.shape[0], input_surface.shape[1], 1, input_surface.shape[-2],input_surface.shape[-1])
     input_surface = torch.permute(input_surface, (0, 2, 3, 4, 1))  # [1,1,721,1440,4]
@@ -470,14 +470,14 @@ class EarthAttention3D(nn.Module):
 
 
     # Add the Earth-Specific bias to the attention matrix
+    EarthSpecificBias = EarthSpecificBias.unsqueeze(1).expand(-1, attention.shape[1], -1, -1, -1, -1)
     attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
-    # attention = attention + EarthSpecificBias#([30, 124, 6, 144, 144])
 
     # Mask the attention between non-adjacent pixels, e.g., simply add -100 to the masked element.
     if mask is not None:
       nW = mask.shape[0] # mask: 30x124x144x144  15x64x144x144
-      attention = attention.view(1, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
-      attention = attention.reshape(nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
+      attention = attention.view(B, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2]) + mask.unsqueeze(2).unsqueeze(0) #1x15x64x1x144x144
+      attention = attention.reshape(B, nW, self.type_of_windows, self.head_number, self.window_size[0]*self.window_size[1]*self.window_size[2], self.window_size[0]*self.window_size[1]*self.window_size[2])
       attention = self.softmax(attention)
     else:
       attention = self.softmax(attention)
@@ -488,7 +488,8 @@ class EarthAttention3D(nn.Module):
     
 
     # Reshape tensor to the original shape
-    x = torch.permute(x, (0, 1, 3, 2, 4)) #([30, 124, 144, 6, 32])
+    # x = torch.permute(x, (0, 1, 3, 2, 4)) #([30, 124, 144, 6, 32])
+    x = torch.permute(x, (0, 1, 2, 4, 3, 5))
     
     x = torch.reshape(x, shape = original_shape)
 

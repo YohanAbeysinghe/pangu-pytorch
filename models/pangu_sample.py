@@ -56,6 +56,9 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
             input, input_surface, target, target_surface, periods = train_data
             input, input_surface, target, target_surface = input.to(device), input_surface.to(device), target.to(device), target_surface.to(device)
 
+            target = target[:,:,:,:-3,:]
+            target_surface = target_surface[:,:,:-3,:]
+
             optimizer.zero_grad()
             # with torch.autocast(device_type='cuda', dtype=torch.float16):
             # /with torch.cuda.amp.autocast():
@@ -176,7 +179,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
             epoch_loss += loss.item()
 
-            if rank == 0 and id%5 == 0:
+            if rank == 0:
                 step = num_iterations_per_epoch*(i-1) + id
                 # wandb.log({"mslp_loss": torch.mean(loss_surface[0]).item()}, step=step)
                 # wandb.log({"u10_loss": torch.mean(loss_surface[1]).item()}, step=step)
@@ -276,6 +279,9 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
 
                     input_val_raw, input_surface_val_raw = input_val, input_surface_val
                     input_val, input_surface_val, target_val, target_surface_val = input_val.to(device), input_surface_val.to(device), target_val.to(device), target_surface_val.to(device)
+
+                    target_val = target_val[:,:,:,:-3,:]
+                    target_surface_val = target_surface_val[:,:,:-3,:]
 
                     # Inference
                     output_val, output_surface_val = model(input_val,input_surface_val,

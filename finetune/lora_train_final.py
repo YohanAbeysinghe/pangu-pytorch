@@ -30,8 +30,8 @@ from tensorboardX import SummaryWriter
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config10', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='test', help='Name of the output directory')
-parser.add_argument('--distri', default=False, help='Doing the distributed training')
+parser.add_argument('--output', type=str, default='lora_proper_crop_batched_1', help='Name of the output directory')
+parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
 config_module = importlib.import_module(f"configs.{args.config}")
