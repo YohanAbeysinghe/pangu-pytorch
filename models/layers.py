@@ -71,9 +71,10 @@ class PatchEmbedding_pretrain(nn.Module):
     # if self.cfg.GLOBAL.STYLE == 'input_output_crop':
     #   self.constant_masks = self.constant_masks[:, 175:392, 718:1030]
 
-    input_surface = torch.cat(
-      (input_surface, self.constant_masks), dim=1,
-      out=None)
+    B = input_surface.shape[0]
+    self.constant_masks = self.constant_masks.expand(B, -1, -1, -1)
+
+    input_surface = torch.cat((input_surface, self.constant_masks), dim=1,out=None)
 
     input_surface = input_surface.view(input_surface.shape[0], input_surface.shape[1], input_surface.shape[-2] // 4,
                                        4, input_surface.shape[-1] // 4, 4)  # (1,7,181,4,360,4)
@@ -91,7 +92,12 @@ class PatchEmbedding_pretrain(nn.Module):
     input = (input - self.upper_mean) / self.upper_std  # [1,1,13,721,1440,5]
     input = torch.permute(input, (0, 5, 1, 2, 3, 4))  # [1,5,1,13,721,1440]
     input = torch.flip(input, [3])
+    # input = torch.cat((input, const_h), dim=1)  # [1,6,1,13,721,1440]
+
+    const_h = const_h.expand(B, -1, -1, -1, -1, -1)
+
     input = torch.cat((input, const_h), dim=1)  # [1,6,1,13,721,1440]
+
     input = input.reshape(input.shape[0], input.shape[1], input.shape[3], input.shape[-2],
                           input.shape[-1])  # [1,6,13,721,1440]
     input = self.check_image_size_3d(input, cfg)
@@ -254,15 +260,21 @@ class EarthSpecificBlock(nn.Module):
     x_window = x.view(x.shape[0], x.shape[1]//self.window_size[0], self.window_size[0], x.shape[2] // self.window_size[1], self.window_size[1], x.shape[3] // self.window_size[2], self.window_size[2], x.shape[-1])
 
     x_window = torch.permute(x_window, (0, 5, 1, 3, 2, 4, 6, 7)) #[1,30,4,31,2,6,12,192]  Current-[1,5,4,8,2,6,12,192] [1,7,4,10,2,6,12,192]
-    x_window = x_window.reshape(x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
+
+########################################################
+    B = x_window.shape[0]  # Batch size
+
+    x_window = x_window.reshape(B, x_window.shape[1],x_window.shape[2]*x_window.shape[3], x_window.shape[4], x_window.shape[5],x_window.shape[6], x_window.shape[7])  # nW*B, window_size*window_size, 
     #x_window (30,124,2,6,12,192) --> Current-[5,32,2,6,12,192]
-    x_window = x_window.contiguous().view(x_window.shape[0], x_window.shape[1], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
+    x_window = x_window.contiguous().view(B, x_window.shape[1], x_window.shape[2], self.window_size[0]*self.window_size[1]*self.window_size[2], x_window.shape[-1])
     # Apply 3D window attention with Earth-Specific bias
     attn_windows = self.attention(x_window, mask)#？x_window:([30, 124, 144, 192]) -[15, 64, 144, 384])  Current x_window [5, 32, 144, 192]   
 
     # Reorganize data to original shapes
     # x_shifted = attn_windows.view(-1, Z // self.window_size[0], H // self.window_size[1] + 1, W //self.window_size[2], self.window_size[0], self.window_size[1], self.window_size[2], x_window.shape[-1])
-    x_shifted = attn_windows.view(1, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192  ---> Current [1, 5, 4, 8, 2, 6, 12, 192]
+    x_shifted = attn_windows.view(B, attn_windows.shape[0], Z // self.window_size[0], H // self.window_size[1] + 1, self.window_size[0], self.window_size[1], self.window_size[2], -1)#1,30,4,31,2,6,12,192  ---> Current [1, 5, 4, 8, 2, 6, 12, 192]
+########################################################
+
     #x_window torch.Size([30, 124, 144, 192]) -[15, 64, 144, 384])
     # x_shifted = torch.permute(x_shifted, (0, 1, 4, 2, 5, 3, 6, 7)) 
     x_shifted = torch.permute(x_shifted, (0, 2, 4, 3, 5, 1, 6, 7))
@@ -416,11 +428,20 @@ class EarthAttention3D(nn.Module):
 
     x = self.linear1(x)#([30, 124, 144, 576]) --> Cuurent Dim [5, 32, 144, 576]
 
+
+
+    B =  x.shape[0]  # Batch size
+
     # reshape the data to calculate multi-head attention
-    qkv = torch.reshape(x, shape=(x.shape[0], x.shape[1], x.shape[2], 3, self.head_number, self.dim // self.head_number)) 
+    qkv = torch.reshape(x, shape=(B, x.shape[1], x.shape[2], x.shape[3], 3, self.head_number, self.dim // self.head_number)) 
     # 30，124，144，3，6，32 
-    qkv = torch.permute(qkv, (3, 0, 1, 4, 2, 5)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
-    query, key, value = qkv[0], qkv[1], qkv[2]
+    # qkv = torch.permute(qkv, (3, 0, 1, 4, 2, 5)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
+    qkv = torch.permute(qkv, (0, 4, 1, 2, 5, 3, 6)) #qkv torch.Size([3, 30, 124, 6, 144, 32])
+
+    query, key, value = qkv[:, 0], qkv[:, 1], qkv[:, 2]
+
+
+
 
     # Scale the attention
     query = query * self.scale
@@ -442,6 +463,7 @@ class EarthAttention3D(nn.Module):
     # EarthSpecificBias = torch.permute(EarthSpecificBias, (2, 3, 0, 1))#torch.Size([124,6,144, 144])
     # EarthSpecificBias = EarthSpecificBias.unsqueeze(0)# ->[1,124,6,144, 144]
     EarthSpecificBias = self.earth_specific_bias
+    EarthSpecificBias = EarthSpecificBias.expand(B, -1, -1, -1, -1)
 
     # @Yohan
     EarthSpecificBias = EarthSpecificBias[:, :self.bias_crop, :, :, :]
