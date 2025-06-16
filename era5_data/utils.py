@@ -73,36 +73,34 @@ def visualize_mena(output, target, input, var, z, step, path, cfg):
     # targetcrop = target[var, z, 179:388, 720:1026]
     # inputcrop = input[var, z, 179:388, 720:1026]
 
-    # vmax = max(output.max(), target.max(), input.max())
-    # vmin = min(output.min(), target.min(), input.min())
+    # vmax = max(outputcrop.max(), targetcrop.max(), inputcrop.max())
+    # vmin = min(outputcrop.min(), targetcrop.min(), inputcrop.min())
+    vmax = max(target.max(), input.max())
+    vmin = min(target.min(), input.min())
 
     ax1 = fig.add_subplot(151)
-    # plot1 = ax1.imshow(input[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot1 = ax1.imshow(input[var, z, :, :], cmap="RdBu")
+    plot1 = ax1.imshow(input[var, z, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
     # New subplot for the sliced region of 'input'
     ax2 = fig.add_subplot(152)
-    # plot2 = ax2.imshow(input[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot2 = ax2.imshow(input[var, z, :, :], cmap="RdBu")
+    plot2 = ax2.imshow(input[var, z, 179:388, 720:1026], cmap="viridis", vmin=vmin, vmax=vmax)
     plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
     ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
-    # plot3 = ax3.imshow(target[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot3 = ax3.imshow(target[var, z, :, :], cmap="RdBu")
+    plot3 = ax3.imshow(target[var, z, 179:388, 720:1026], cmap="viridis", vmin=vmin, vmax=vmax)
     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
     ax3.title.set_text('gt')
 
     ax4 = fig.add_subplot(154)
-    # plot4 = ax4.imshow(output[var, z, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot4 = ax4.imshow(output[var, z, :, :], cmap="RdBu")
+    plot4 = ax4.imshow(output[var, z, 179:388, 720:1026], cmap="viridis", vmin=vmin, vmax=vmax)
     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
     ax4.title.set_text('pred')
 
     ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, z, :, :] - target[var, z, :, :], cmap="RdBu")
+    plot5 = ax5.imshow(output[var, z, 179:388, 720:1026] - target[var, z, 179:388, 720:1026], cmap="viridis")
     plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
     ax5.title.set_text('bias')
 
@@ -137,35 +135,37 @@ def visualize_surface_mena(output, target, input, var, step, path, cfg):
 
     # vmax = max(output.max(), target.max(), input.max())
     # vmin = min(output.min(), target.min(), input.min())
+    vmax = max(target.max(), input.max())
+    vmin = min(target.min(), input.min())
 
 
     ax1 = fig.add_subplot(151)
-    # plot1 = ax1.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot1 = ax1.imshow(input[var, :, :], cmap="RdBu")
+    plot1 = ax1.imshow(input[var, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
+    # plot1 = ax1.imshow(input[var, :, :], cmap="RdBu")
     plt.colorbar(plot1, ax=ax1, fraction=0.05, pad=0.05)
     ax1.title.set_text('input')
 
     # New subplot for the sliced region of 'input'
     ax2 = fig.add_subplot(152)
-    # plot2 = ax2.imshow(input[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot2 = ax2.imshow(input[var, :, :], cmap="RdBu")
+    plot2 = ax2.imshow(input[var, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
+    # plot2 = ax2.imshow(input[var, :, :], cmap="RdBu")
     plt.colorbar(plot2, ax=ax2, fraction=0.05, pad=0.05)
     ax2.title.set_text('input_slice')
 
     ax3 = fig.add_subplot(153)
-    # plot3 = ax3.imshow(target[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot3 = ax3.imshow(target[var, :, :], cmap="RdBu")
+    plot3 = ax3.imshow(target[var, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
+    # plot3 = ax3.imshow(target[var, :, :], cmap="RdBu")
     plt.colorbar(plot3, ax=ax3, fraction=0.05, pad=0.05)
     ax3.title.set_text('gt')
 
     ax4 = fig.add_subplot(154)
-    # plot4 = ax4.imshow(output[var, :, :], cmap="RdBu", vmin=vmin, vmax=vmax)
-    plot4 = ax4.imshow(output[var, :, :], cmap="RdBu")
+    plot4 = ax4.imshow(output[var, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
+    # plot4 = ax4.imshow(output[var, :, :], cmap="RdBu")
     plt.colorbar(plot4, ax=ax4, fraction=0.05, pad=0.05)
     ax4.title.set_text('pred')
 
     ax5 = fig.add_subplot(155)
-    plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="RdBu")
+    plot5 = ax5.imshow(output[var, :, :] - target[var, :, :], cmap="viridis", vmin=vmin, vmax=vmax)
     plt.colorbar(plot5, ax=ax5, fraction=0.05, pad=0.05)
     ax5.title.set_text('bias')
 
