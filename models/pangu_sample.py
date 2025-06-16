@@ -512,7 +512,9 @@ def test(test_loader, model, device, res_path, cfg):
         input_test, input_surface_test, target_test, target_surface_test = input_test.to(device), input_surface_test.to(device), target_test.to(device), target_surface_test.to(device)
         model.eval()
 
-
+        target_test = target_test[:,:,:,:-3,:]
+        target_surface_test = target_surface_test[:,:,:-3,:]
+        
         if cfg.GLOBAL.MODEL == 'All_pm':
             #Log scaling
             scale = torch.log(torch.tensor(1e20))
@@ -529,6 +531,10 @@ def test(test_loader, model, device, res_path, cfg):
                                                         aux_constants['weather_statistics_last'])
         
 
+        input_test = input_test[:,:,:,:-3,:]
+        input_surface_test = input_surface_test[:,:,:-3,:]
+
+
         if cfg.GLOBAL.MODEL == 'All_pm':
             #Log scaling
             scale = torch.log(torch.tensor(1e20))
@@ -540,13 +546,13 @@ def test(test_loader, model, device, res_path, cfg):
         target_time = periods_test[1][batch_id]
 
         # Visualize
-        png_path = os.path.join(res_path, "png")
+        png_path = os.path.join(res_path, "png5")
         utils.mkdirs(png_path)
 
         
 
                 
-        if cfg.GLOBAL.STYLE == 'input_output_crop' or cfg.GLOBAL.STYLE == 'padding':
+        if cfg.GLOBAL.STYLE == 'input_output_crop' and id % 10 == 0:
             utils.visualize_mena(
                 output_test.detach().cpu().squeeze(),
                 target_test.detach().cpu().squeeze(),
