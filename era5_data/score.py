@@ -88,6 +88,8 @@ def lat(j: torch.Tensor, num_lat: int) -> torch.Tensor:
 def latitude_weighting_factor_torch(j: torch.Tensor, num_lat: int, s: torch.Tensor) -> torch.Tensor:
     return num_lat * torch.cos(3.1416/180. * lat(j, num_lat))/s
 
+
+
 @torch.jit.script
 def weighted_rmse_torch_channels(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     #takes in arrays of size [n, c, h, w]  and returns latitude-weighted rmse for each chann
@@ -103,6 +105,73 @@ def weighted_rmse_torch_channels(pred: torch.Tensor, target: torch.Tensor) -> to
         weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1))
     result = torch.sqrt(torch.mean(weight * (pred - target)**2., dim=(-1,-2)))
     return result
+
+
+
+
+# @torch.jit.script
+def weighted_rmse_cropped(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    '''#takes in arrays of size [n, c, h, w]  and returns latitude-weighted rmse for each chann'''
+
+    lat_start= 175
+    lat_end =  392
+    lon_start = 718
+    lon_end =  1030
+    num_lat = 721
+    num_lon = 1440
+
+    # C = pred.shape[0]
+    # pred_padded = torch.zeros((C, num_lat, num_lon), dtype=pred.dtype, device=pred.device)
+    # target_padded = torch.zeros((C, num_lat, num_lon), dtype=target.dtype, device=target.device)
+    # pred_padded[:, lat_start:lat_end, lon_start:lon_end] = pred
+    # target_padded[:, lat_start:lat_end, lon_start:lon_end] = target
+    # pred = pred_padded
+    # target = target_padded
+
+    num_lat = pred.shape[-2]
+    #num_long = target.shape[2]
+    # lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
+    lat_t = torch.arange(start=lat_start, end=lat_end, device=pred.device)
+
+    s = torch.sum(torch.cos(3.1416/180. * lat(lat_t, num_lat)))
+
+    if pred.dim() == 3:
+        weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, -1, 1))
+    else:
+        weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1))
+    result = torch.sqrt(torch.mean(weight * (pred - target)**2., dim=(-1,-2)))
+    return result
+
+
+# @torch.jit.script
+# def weighted_rmse_cropped(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+#     """
+#     pred, target: [C, H_crop, W_crop]  (e.g., [13, 217, 312])
+#     lat_start, lat_end: indices in original latitude grid (e.g., 175, 392)
+#     num_lat_total: total number of latitude rows in original full grid (e.g., 721)
+#     """
+#     lat_start= 175
+#     lat_end =  392
+#     num_lat = 721
+
+#     assert pred.shape == target.shape
+#     C, H, W = pred.shape
+
+#     lat_t = torch.arange(lat_start, lat_end, device=pred.device)  # [217]
+#     s = torch.sum(torch.cos(3.1416/180. * lat(lat_t, num_lat)))
+
+#     if pred.dim() == 3:
+#         weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, -1, 1))
+#     else:
+#         weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1))
+#     result = torch.sqrt(torch.mean(weight * (pred - target)**2., dim=(-1,-2)))
+#     return result
+
+
+
+
+
+
 
 @torch.jit.script
 def weighted_rmse_torch(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -133,6 +202,67 @@ def weighted_acc_torch_channels(pred: torch.Tensor, target: torch.Tensor) -> tor
     result = torch.sum(weight * pred * target, dim=(-1,-2)) / torch.sqrt(torch.sum(weight * pred * pred, dim=(-1,-2)) * torch.sum(weight * target *
     target, dim=(-1,-2)))
     return result
+
+
+# 
+# @torch.jit.script
+def weighted_acc_cropped(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    '''#takes in arrays of size [n, c, h, w]  and returns latitude-weighted acc'''
+    
+    lat_start= 175
+    lat_end =  392
+    lon_start = 718
+    lon_end =  1030
+    num_lat = 721
+    num_lon = 1440
+
+    # C = pred.shape[0]
+    # pred_padded = torch.zeros((C, num_lat, num_lon), dtype=pred.dtype, device=pred.device)
+    # target_padded = torch.zeros((C, num_lat, num_lon), dtype=target.dtype, device=target.device)
+    # pred_padded[:, lat_start:lat_end, lon_start:lon_end] = pred
+    # target_padded[:, lat_start:lat_end, lon_start:lon_end] = target
+    # pred = pred_padded
+    # target = target_padded
+
+    num_lat = pred.shape[-2]
+    #num_long = target.shape[2]
+    # lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
+    lat_t = torch.arange(start=lat_start, end=lat_end, device=pred.device)
+
+    s = torch.sum(torch.cos(3.1416/180. * lat(lat_t, num_lat)))
+    if pred.dim() == 3:
+        weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, -1, 1))
+    else:
+        weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1))
+    result = torch.sum(weight * pred * target, dim=(-1,-2)) / torch.sqrt(torch.sum(weight * pred * pred, dim=(-1,-2)) * torch.sum(weight * target *
+    target, dim=(-1,-2)))
+    return result
+
+
+# @torch.jit.script
+# def weighted_acc_cropped(pred: torch.Tensor, target: torch.Tensor,) -> torch.Tensor:
+#     """
+#     pred, target: [C, H_crop, W_crop]  (e.g., [13, 217, 312])
+#     lat_start, lat_end: indices in original latitude grid (e.g., 175, 392)
+#     num_lat_total: total number of latitude rows in original full grid (e.g., 721)
+#     """
+
+#     lat_start= 175
+#     lat_end =  392
+#     num_lat = 721
+
+#     lat_t = torch.arange(start=lat_start, end=lat_end, device=pred.device)
+#     s = torch.sum(torch.cos(3.1416/180. * lat(lat_t, num_lat)))
+#     if pred.dim() == 3:
+#         weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, -1, 1))
+#     else:
+#         weight = torch.reshape(latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1))
+#     result = torch.sum(weight * pred * target, dim=(-1,-2)) / torch.sqrt(torch.sum(weight * pred * pred, dim=(-1,-2)) * torch.sum(weight * target *
+#     target, dim=(-1,-2)))
+#     return result
+
+
+
 
 @torch.jit.script
 def weighted_acc_torch(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:

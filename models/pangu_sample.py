@@ -534,63 +534,63 @@ def test(test_loader, model, device, res_path, cfg):
         target_time = periods_test[1][batch_id]
 
         # Visualize
-        png_path = os.path.join(res_path, "png")
+        png_path = os.path.join(res_path, "png5")
         utils.mkdirs(png_path)
 
         
 
                 
-        if cfg.GLOBAL.STYLE == 'input_output_crop' or cfg.GLOBAL.STYLE == 'padding':
-            utils.visualize_mena(
-                output_test.detach().cpu().squeeze(),
-                target_test.detach().cpu().squeeze(),
-                input_test.squeeze(),
-                var='u',
-                z=12,
-                step=target_time,
-                path=png_path,
-                cfg=cfg
-                )
+        # if cfg.GLOBAL.STYLE == 'input_output_crop' and id % 10 == 0:
+        #     utils.visualize_mena(
+        #         output_test.detach().cpu().squeeze(),
+        #         target_test.detach().cpu().squeeze(),
+        #         input_test.squeeze(),
+        #         var='u',
+        #         z=12,
+        #         step=target_time,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
         
-            utils.visualize_surface_mena(
-                output_surface_test.detach().cpu().squeeze(),
-                target_surface_test.detach().cpu().squeeze(),
-                input_surface_test.squeeze(),
-                var='u10',
-                step=target_time,
-                path=png_path,
-                cfg=cfg
-                )
+        #     utils.visualize_surface_mena(
+        #         output_surface_test.detach().cpu().squeeze(),
+        #         target_surface_test.detach().cpu().squeeze(),
+        #         input_surface_test.squeeze(),
+        #         var='u10',
+        #         step=target_time,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
 
-            utils.visualize_surface_mena(
-                output_surface_test.detach().cpu().squeeze(),
-                target_surface_test.detach().cpu().squeeze(),
-                input_surface_test.squeeze(),
-                var='pm1',
-                step=target_time,
-                path=png_path,
-                cfg=cfg
-                )
+        #     utils.visualize_surface_mena(
+        #         output_surface_test.detach().cpu().squeeze(),
+        #         target_surface_test.detach().cpu().squeeze(),
+        #         input_surface_test.squeeze(),
+        #         var='pm1',
+        #         step=target_time,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
         
-            utils.visualize_surface_mena(
-                output_surface_test.detach().cpu().squeeze(),
-                target_surface_test.detach().cpu().squeeze(),
-                input_surface_test.squeeze(),
-                var='pm25',
-                step=target_time,
-                path=png_path,
-                cfg=cfg
-                )
+        #     utils.visualize_surface_mena(
+        #         output_surface_test.detach().cpu().squeeze(),
+        #         target_surface_test.detach().cpu().squeeze(),
+        #         input_surface_test.squeeze(),
+        #         var='pm25',
+        #         step=target_time,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
             
-            utils.visualize_surface_mena(
-                output_surface_test.detach().cpu().squeeze(),
-                target_surface_test.detach().cpu().squeeze(),
-                input_surface_test.squeeze(),
-                var='pm10',
-                step=target_time,
-                path=png_path,
-                cfg=cfg
-                )
+        #     utils.visualize_surface_mena(
+        #         output_surface_test.detach().cpu().squeeze(),
+        #         target_surface_test.detach().cpu().squeeze(),
+        #         input_surface_test.squeeze(),
+        #         var='pm10',
+        #         step=target_time,
+        #         path=png_path,
+        #         cfg=cfg
+        #         )
             
         # else:
         #     utils.visualize_orig(
@@ -654,18 +654,18 @@ def test(test_loader, model, device, res_path, cfg):
         target_surface_test = target_surface_test.squeeze()
 
 
-        rmse_upper_z[target_time] = score.weighted_rmse_torch_channels(output_test[0],
+        rmse_upper_z[target_time] = score.weighted_rmse_cropped(output_test[0],
                                                                        target_test[0]).detach().cpu().numpy()
-        rmse_upper_q[target_time] = score.weighted_rmse_torch_channels(output_test[1],
+        rmse_upper_q[target_time] = score.weighted_rmse_cropped(output_test[1],
                                                                        target_test[1]).detach().cpu().numpy()
-        rmse_upper_t[target_time] = score.weighted_rmse_torch_channels(output_test[2],
+        rmse_upper_t[target_time] = score.weighted_rmse_cropped(output_test[2],
                                                                        target_test[2]).detach().cpu().numpy()
-        rmse_upper_u[target_time] = score.weighted_rmse_torch_channels(output_test[3],
+        rmse_upper_u[target_time] = score.weighted_rmse_cropped(output_test[3],
                                                                        target_test[3]).detach().cpu().numpy()
-        rmse_upper_v[target_time] = score.weighted_rmse_torch_channels(output_test[4],
+        rmse_upper_v[target_time] = score.weighted_rmse_cropped(output_test[4],
                                                                        target_test[4]).detach().cpu().numpy()
 
-        rmse_surface[target_time] = score.weighted_rmse_torch_channels(output_surface_test,
+        rmse_surface[target_time] = score.weighted_rmse_cropped(output_surface_test,
                                                                        target_surface_test).detach().cpu().numpy()
 
 
@@ -676,21 +676,21 @@ def test(test_loader, model, device, res_path, cfg):
         target_test_anomaly = target_test - upper_mean.squeeze(0)
         target_surface_test_anomaly = target_surface_test - surface_mean.squeeze(0)
 
-        acc_upper_z[target_time] = score.weighted_acc_torch_channels(output_test_anomaly[0],
+        acc_upper_z[target_time] = score.weighted_acc_cropped(output_test_anomaly[0],
                                                                      target_test_anomaly[0]).detach().cpu().numpy()
-        acc_upper_q[target_time] = score.weighted_acc_torch_channels(output_test_anomaly[1],
+        acc_upper_q[target_time] = score.weighted_acc_cropped(output_test_anomaly[1],
                                                                      target_test_anomaly[1]).detach().cpu().numpy()
-        acc_upper_t[target_time] = score.weighted_acc_torch_channels(output_test_anomaly[2],
+        acc_upper_t[target_time] = score.weighted_acc_cropped(output_test_anomaly[2],
                                                                      target_test_anomaly[2]).detach().cpu().numpy()
-        acc_upper_u[target_time] = score.weighted_acc_torch_channels(output_test_anomaly[3],
+        acc_upper_u[target_time] = score.weighted_acc_cropped(output_test_anomaly[3],
                                                                      target_test_anomaly[3]).detach().cpu().numpy()
-        acc_upper_v[target_time] = score.weighted_acc_torch_channels(output_test_anomaly[4],
+        acc_upper_v[target_time] = score.weighted_acc_cropped(output_test_anomaly[4],
                                                                      target_test_anomaly[4]).detach().cpu().numpy()
 
-        acc_surface[target_time] = score.weighted_acc_torch_channels(output_surface_test_anomaly,
+        acc_surface[target_time] = score.weighted_acc_cropped(output_surface_test_anomaly,
                                                                      target_surface_test_anomaly).detach().cpu().numpy()
     # Save rmses to csv
-    csv_path = os.path.join(res_path, "csv")
+    csv_path = os.path.join(res_path, "csv5_1")
     utils.mkdirs(csv_path)
     utils.save_errorScores(csv_path, rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v, rmse_surface, "rmse", cfg=cfg)
     utils.save_errorScores(csv_path, acc_upper_z, acc_upper_q, acc_upper_t, acc_upper_u, acc_upper_v, acc_surface, "acc", cfg=cfg)
