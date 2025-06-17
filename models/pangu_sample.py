@@ -534,48 +534,48 @@ def test(test_loader, model, device, res_path, cfg):
         target_time = periods_test[1][batch_id]
 
         # Visualize
-        png_path = os.path.join(res_path, "png")
-        utils.mkdirs(png_path)
+        # png_path = os.path.join(res_path, "png")
+        # utils.mkdirs(png_path)
 
         
-        if cfg.GLOBAL.MENA_crop:
-        #['msl', 'u','v','t2m']
-            utils.visualize(output_test.detach().cpu().squeeze(),
-                    target_test.detach().cpu().squeeze(), 
-                    input_test.detach().cpu().squeeze(),
-                    var='t',
-                    z = 2,
-                    step=target_time, 
-                    path=png_path,
-                    cfg=cfg
-                    )
+        # if cfg.GLOBAL.MENA_crop:
+        # #['msl', 'u','v','t2m']
+        #     utils.visualize(output_test.detach().cpu().squeeze(),
+        #             target_test.detach().cpu().squeeze(), 
+        #             input_test.detach().cpu().squeeze(),
+        #             var='t',
+        #             z = 2,
+        #             step=target_time, 
+        #             path=png_path,
+        #             cfg=cfg
+        #             )
             
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm1',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
+        #     utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+        #                             target_surface_test.detach().cpu().squeeze(),
+        #                             input_surface_test.detach().cpu().squeeze(),
+        #                             var='pm1',
+        #                             step=target_time,
+        #                             path=png_path,
+        #                             cfg=cfg
+        #                             )
             
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm25',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
+        #     utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+        #                             target_surface_test.detach().cpu().squeeze(),
+        #                             input_surface_test.detach().cpu().squeeze(),
+        #                             var='pm25',
+        #                             step=target_time,
+        #                             path=png_path,
+        #                             cfg=cfg
+        #                             )
             
-            utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
-                                    target_surface_test.detach().cpu().squeeze(),
-                                    input_surface_test.detach().cpu().squeeze(),
-                                    var='pm10',
-                                    step=target_time,
-                                    path=png_path,
-                                    cfg=cfg
-                                    )
+        #     utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
+        #                             target_surface_test.detach().cpu().squeeze(),
+        #                             input_surface_test.detach().cpu().squeeze(),
+        #                             var='pm10',
+        #                             step=target_time,
+        #                             path=png_path,
+        #                             cfg=cfg
+        #                             )
             
             # utils.visualize_surface_mena(output_surface_test.detach().cpu().squeeze(),
             #                         target_surface_test.detach().cpu().squeeze(),
@@ -595,34 +595,34 @@ def test(test_loader, model, device, res_path, cfg):
             #                         cfg=cfg
             #                         )
 
-        else:
-            utils.visualize_orig(output_test.detach().cpu().squeeze(),
-                    target_test.detach().cpu().squeeze(), 
-                    input_test.detach().cpu().squeeze(),
-                    var='t',
-                    z = 2,
-                    step=target_time, 
-                    path=png_path,
-                    cfg=cfg
-                    )
+        # else:
+        #     utils.visualize_orig(output_test.detach().cpu().squeeze(),
+        #             target_test.detach().cpu().squeeze(), 
+        #             input_test.detach().cpu().squeeze(),
+        #             var='t',
+        #             z = 2,
+        #             step=target_time, 
+        #             path=png_path,
+        #             cfg=cfg
+        #             )
                         
-            utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
-                                target_surface_test.detach().cpu().squeeze(),
-                                input_surface_test.detach().cpu().squeeze(),
-                                var='u10',
-                                step=target_time,
-                                path=png_path,
-                                cfg=cfg
-                                )
+        #     utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
+        #                         target_surface_test.detach().cpu().squeeze(),
+        #                         input_surface_test.detach().cpu().squeeze(),
+        #                         var='u10',
+        #                         step=target_time,
+        #                         path=png_path,
+        #                         cfg=cfg
+        #                         )
             
-            utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
-                                target_surface_test.detach().cpu().squeeze(),
-                                input_surface_test.detach().cpu().squeeze(),
-                                var='t2m',
-                                step=target_time,
-                                path=png_path,
-                                cfg=cfg
-                                )
+        #     utils.visuailze_surface_orig(output_surface_test.detach().cpu().squeeze(),
+        #                         target_surface_test.detach().cpu().squeeze(),
+        #                         input_surface_test.detach().cpu().squeeze(),
+        #                         var='t2m',
+        #                         step=target_time,
+        #                         path=png_path,
+        #                         cfg=cfg
+        #                         )
 
         # Compute test scores
         # rmse
@@ -668,7 +668,7 @@ def test(test_loader, model, device, res_path, cfg):
         acc_surface[target_time] = score.weighted_acc_torch_channels(output_surface_test_anomaly,
                                                                      target_surface_test_anomaly).detach().cpu().numpy()
     # Save rmses to csv
-    csv_path = os.path.join(res_path, "csv")
+    csv_path = os.path.join(res_path, "csv5_world")
     utils.mkdirs(csv_path)
     utils.save_errorScores(csv_path, rmse_upper_z, rmse_upper_q, rmse_upper_t, rmse_upper_u, rmse_upper_v, rmse_surface, "rmse", cfg=cfg)
     utils.save_errorScores(csv_path, acc_upper_z, acc_upper_q, acc_upper_t, acc_upper_u, acc_upper_v, acc_surface, "acc", cfg=cfg)

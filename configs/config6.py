@@ -11,7 +11,7 @@ __C.GLOBAL.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
-__C.GLOBAL.MODEL = 'All_pm'
+__C.GLOBAL.MODEL = 'original'
 # __C.GLOBAL.MENA_crop = True #False
 __C.GLOBAL.LOSS = "MSE" #"Exloss"
 __C.GLOBAL.START = "checkpoint" #"scratch"
@@ -30,7 +30,7 @@ __C.PG_OUT_PATH = os.path.join('/l/users/fahad.khan/akhtar/Pangu/data/pangu_data
 assert __C.PG_OUT_PATH is not None
 
 __C.ERA5_UPPER_LEVELS = ['1000','925','850', '700','600','500','400', '300','250', '200','150','100', '50']
-__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m', 'pm1', 'pm25', 'pm10']
+__C.ERA5_SURFACE_VARIABLES = ['msl','u10','v10','t2m']
 __C.ERA5_UPPER_VARIABLES = ['z','q','t','u','v']
 
 __C.PG = edict()
@@ -44,7 +44,7 @@ __C.PG.TRAIN.END_TIME = '20040110' #'20181231'
 __C.PG.TRAIN.FREQUENCY = '12h'
 __C.PG.TRAIN.BATCH_SIZE = 2
 __C.PG.TRAIN.UPPER_WEIGHTS = [3.00, 0.60, 1.50, 0.77, 0.54]
-__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00, 1.20, 1.20, 1.20]
+__C.PG.TRAIN.SURFACE_WEIGHTS = [1.50, 0.77, 0.66, 3.00]
 __C.PG.TRAIN.SAVE_INTERVAL = 1
 __C.PG.TRAIN.LOW_RANK = 8
 

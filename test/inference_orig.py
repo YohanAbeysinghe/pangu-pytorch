@@ -13,8 +13,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from era5_data.config import cfg
 from era5_data import utils_data, utils
 from models.pangu_model import PanguModel
-from models.pangu_sample import test, train
-from models.test_mena import test_mena
+# from models.pangu_sample import test, train
+from models.test_mena import test
 
 import os
 import wandb
@@ -33,7 +33,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config6', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Original_Pangu_Inference_2019_0602', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='Original_Pangu_Inference_MENA', help='Name of the output directory')
 parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 
@@ -88,17 +88,12 @@ model.eval()
 
 
 # Testing on the Whole Globe
-# test(test_loader=test_dataloader,
-#      model=model,
-#      device=device,
-#      res_path=output_path,
-#      cfg = cfg)
-#
-
-# Testing on MENA Region
-test_mena(test_loader=test_dataloader,
+test(test_loader=test_dataloader,
      model=model,
      device=device,
      res_path=output_path,
      cfg = cfg)
+#
+
+
 

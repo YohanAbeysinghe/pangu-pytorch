@@ -13,8 +13,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from era5_data.config import cfg
 from era5_data import utils_data, utils
 from models.pangu_model import PanguModel
-# from models.pangu_sample import test, train
-from models.test_mena import test
+# from models.test_mena import test
+from models.pangu_sample import test
 
 import os
 import wandb
@@ -57,36 +57,38 @@ def load_model_for_inference(cfg, output_path, device):
         new_output_bias[:64] = state_dict['_output_layer.conv_surface.bias']
         state_dict['_output_layer.conv_surface.bias'] = new_output_bias
 
-    model.load_state_dict(state_dict)
 
-    # # Step 3: Apply LoRA
-    # target_modules = [
-    #     n for n, m in model.named_modules() if isinstance(m, nn.Linear)
-    # ]
+    model.load_state_dict(state_dict, strict=False)
 
-    # lora_config = LoraConfig(
-    #     r=cfg.PG.TRAIN.Low_Rank,
-    #     lora_alpha=16,
-    #     target_modules=target_modules,
-    #     lora_dropout=0.1,
-    #     bias="none",
-    # )
+    # Step 3: Apply LoRA
+    target_modules = []
+    for name, module in model.named_modules():
+        if isinstance(module, nn.Linear):
+            target_modules.append(name)
+            print(f"Appended module for LoRA: {name}")
 
-    # model = get_peft_model(model, lora_config)
 
-    # # Step 4: Load LoRA and edited-layer weights from finetuned checkpoint
-    # best_model_path = os.path.join(output_path, "models/model_weights_1.pth")
+    lora_config = LoraConfig(
+        r=cfg.PG.TRAIN.LOW_RANK,          # Make sure this is capitalized consistently
+        lora_alpha=16,
+        target_modules=target_modules,
+        lora_dropout=0.1,
+        # bias="none",                      # or "all" / "lora_only" depending on needs
+        # task_type="REGRESSION"           # Or "FEATURE_EXTRACTION" if only embedding
+    )
+
+    model = get_peft_model(model, lora_config).to(device)
+
+    # Step 4: Load LoRA and edited-layer weights from finetuned checkpoint
+    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune/models/model_weights_5.pth"
     # model.load_state_dict(torch.load(best_model_path, map_location=device))
 
     # Step 4: Load edited-layer weights from finetuned checkpoint
 
     # best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/Full_finetune_normalized_0602_1/models/model_weights_1.pth"
 
-    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/Full_finetune_normalized_0602_1/models/train_1.pth"
-
+    # best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/proper_crop_mena/models/model_weights_1.pth"
     state_dict = torch.load(best_model_path, map_location=device)
-
-    state_dict = state_dict['model']
 
 
     new_state_dict = {}
@@ -114,8 +116,8 @@ def load_model_for_inference(cfg, output_path, device):
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config5', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Full_finetune_normalized_0602_1', help='Name of the output directory')
+parser.add_argument('--config', type=str, default='config8', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='lora_full_finetune', help='Name of the output directory')
 parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 
