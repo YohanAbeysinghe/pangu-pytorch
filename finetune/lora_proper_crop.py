@@ -30,7 +30,7 @@ from tensorboardX import SummaryWriter
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config9', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='proper_crop_mena_train_lora', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='proper_crop_mena_train_lora_r32', help='Name of the output directory')
 parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
@@ -286,8 +286,8 @@ for name, module in model.named_modules():
         print(f"Appended module for LoRA: {name}")
 
 lora_config = LoraConfig(
-    r=cfg.PG.TRAIN.LOW_RANK,          # Make sure this is capitalized consistently
-    lora_alpha=16,
+    r=32,          # Make sure this is capitalized consistently
+    lora_alpha=64,
     target_modules=target_modules,
     lora_dropout=0.1,
     # bias="none",                      # or "all" / "lora_only" depending on needs
