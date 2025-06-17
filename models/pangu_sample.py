@@ -87,7 +87,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 loss_surface = criterion(output_surface, target_surface)
 
                 # Cropping into a slightly larger region than MENA.
-                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
+                if cfg.GLOBAL.MENA_crop:
                     # loss_surface = loss_surface[:, :, 179:388, 720:1026]
                     loss_surface = loss_surface[:, :, 175:392, 718:1030]
 
@@ -96,7 +96,7 @@ def train(model, train_loader, val_loader, optimizer, res_path, device, writer, 
                 ############################Upper MSE Loss###########################
 
                 loss_upper = criterion(output, target)
-                if cfg.GLOBAL.STYLE == 'output_crop' or cfg.GLOBAL.STYLE == 'padding':
+                if cfg.GLOBAL.MENA_crop:
                     # loss_upper = loss_upper[:, :, :, 179:388, 720:1026]
                     loss_upper = loss_upper[:, :, :, 175:392, 718:1030]
 

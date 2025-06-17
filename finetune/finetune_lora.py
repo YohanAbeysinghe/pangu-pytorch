@@ -29,8 +29,8 @@ from tensorboardX import SummaryWriter
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config8', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='lora_full_finetune', help='Name of the output directory')
+parser.add_argument('--config', type=str, default='config9', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='lora_full_finetune_loss_cropped', help='Name of the output directory')
 parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
