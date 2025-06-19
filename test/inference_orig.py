@@ -32,8 +32,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 ###########################################################################################
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
-parser.add_argument('--config', type=str, default='config6', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='Original_Pangu_Inference_MENA', help='Name of the output directory')
+parser.add_argument('--config', type=str, default='f', help='Option to load different configs')
+parser.add_argument('--output', type=str, default='Original_Pangu_Inference_MENA_721', help='Name of the output directory')
 parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 

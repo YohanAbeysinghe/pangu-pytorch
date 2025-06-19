@@ -50,7 +50,7 @@ utils.mkdirs(output_path)
 writer_path = os.path.join(output_path, "writer")
 if not os.path.exists(writer_path):
     os.mkdir(writer_path)
-writer = SummaryWriter(writer_path)
+losswriter = SummaryWriter(writer_path)
 
 logger_name = "finetune_fully" + str(cfg.PG.HORIZON)
 utils.logger_info(logger_name, os.path.join(output_path, logger_name + '.log'))

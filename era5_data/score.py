@@ -291,7 +291,7 @@ def weighted_rmse_cropped(pred: torch.Tensor, target: torch.Tensor) -> torch.Ten
     # target = target_padded
 
     num_lat = pred.shape[-2]
-    #num_long = target.shape[2]
+    # num_long = target.shape[2]
     # lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
     lat_t = torch.arange(start=lat_start, end=lat_end, device=pred.device)
 

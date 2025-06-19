@@ -13,8 +13,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from era5_data.config import cfg
 from era5_data import utils_data, utils
 from models.pangu_model import PanguModel
-# from models.test_mena import test
-from models.pangu_sample import test
+from models.test_mena import test
+# from models.pangu_sample import test
 
 import os
 import wandb
@@ -80,7 +80,7 @@ def load_model_for_inference(cfg, output_path, device):
     model = get_peft_model(model, lora_config).to(device)
 
     # Step 4: Load LoRA and edited-layer weights from finetuned checkpoint
-    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune/models/model_weights_5.pth"
+    best_model_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune_loss_cropped/models/model_weights_3.pth"
     # model.load_state_dict(torch.load(best_model_path, map_location=device))
 
     # Step 4: Load edited-layer weights from finetuned checkpoint
@@ -117,7 +117,7 @@ def load_model_for_inference(cfg, output_path, device):
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config8', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='lora_full_finetune', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='lora_full_finetune_loss_cropped', help='Name of the output directory')
 parser.add_argument('--distri', default=False, help='Doing the distributed training')
 args = parser.parse_args()
 
