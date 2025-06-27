@@ -12,11 +12,11 @@ __C.GLOBAL.BATCH_SZIE = 1 # @Yohan
 __C.GLOBAL.SEED =99
 __C.GLOBAL.NUM_THREADS = 2
 __C.GLOBAL.MODEL = 'All_pm'
-__C.GLOBAL.MENA_crop = False #False
+# __C.GLOBAL.MENA_crop = True #False
 __C.GLOBAL.LOSS = "MSE" #"Exloss"
 __C.GLOBAL.START = "checkpoint" #"scratch"
-__C.GLOBAL.LORA = False #False
-__C.GLOBAL.STYLE = 'output_crop' #'input_output_crop' #'padding' # 'output_crop' 
+__C.GLOBAL.LORA = True #False
+__C.GLOBAL.STYLE = 'original' #'input_output_crop' #'padding' # 'output_crop' 
 
 for dirs in ['/l/users/fahad.khan/akhtar/Pangu/pangu-pytorch']:
     if os.path.exists(dirs):
@@ -36,7 +36,7 @@ __C.ERA5_UPPER_VARIABLES = ['z','q','t','u','v']
 __C.PG = edict()
 __C.PG.HORIZON = 24
 __C.PG.TRAIN = edict()
-__C.PG.TRAIN.EPOCHS = 20
+__C.PG.TRAIN.EPOCHS = 5
 __C.PG.TRAIN.LR = 5e-4 #5e-6 #5e-4
 __C.PG.TRAIN.WEIGHT_DECAY = 3e-7 #3e-6
 __C.PG.TRAIN.START_TIME =  '20040101' #'20030101'

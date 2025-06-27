@@ -6,3 +6,4 @@ wandb/
 .cdsapirc
 notebooks/archive/output.nc
 notebooks/archive/surface_201901.nc
+data/climat/running_average.pt

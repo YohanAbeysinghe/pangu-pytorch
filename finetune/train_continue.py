@@ -30,7 +30,7 @@ from tensorboardX import SummaryWriter
 #
 parser = argparse.ArgumentParser(description="Pangu Model Training")
 parser.add_argument('--config', type=str, default='config9', help='Option to load different configs')
-parser.add_argument('--output', type=str, default='lora_full_finetune_loss_cropped', help='Name of the output directory')
+parser.add_argument('--output', type=str, default='lora_full_finetune', help='Name of the output directory')
 parser.add_argument('--distri', default=True, help='Doing the distributed training')
 args = parser.parse_args()
 
@@ -275,7 +275,8 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config).to(device)
 
 
-checkpoint_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune_loss_cropped/models/train_3.pth"
+# checkpoint_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune_loss_cropped/models/train_3.pth"
+checkpoint_path = "/l/users/fahad.khan/akhtar/Pangu/data/pangu_data/results/lora_full_finetune/models/train_5.pth"
 checkpoint = torch.load(checkpoint_path, map_location=device)
 resume_epoch = checkpoint["epoch"]
 model.load_state_dict(checkpoint["model"], strict=False)
